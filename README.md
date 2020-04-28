@@ -4,10 +4,35 @@ This library contains an adapted version of the [epidemes v0.2.0 modeling and mi
 
 The delivered **epidemes** framework was co-funded by [Smet WEB research project](https://www.rivm.nl/rivm/kennis-en-kunde/strategisch-programma-rivm/spr-2015-2018/wiskundige-modellering-ziekten/smet-web) as part of RIVM's [Strategic Programme (SPR) for 2015-2018](https://www.rivm.nl/rivm/kennis-en-kunde/strategisch-programma-rivm/spr-2015-2018)), such that it would support related projects. For instance, a [sample synthetic population with vaccination hesitancy](https://github.com/JHoogink/morphine) was developed for the [MORPHINE project](https://www.rivm.nl/rivm/kennis-en-kunde/strategisch-programma-rivm/spr-2015-2018/wiskundige-modellering-ziekten/morphine) within the same research programme.
 
+### Quick Start
+
+1. Download the source (requires [Git CLI](https://git-scm.com/downloads))
+   ```
+   git clone https://github.com/SmetWeb/smetweb-epidemes.git
+   ```
+2. Build the executable Java archive (jar) 
+   ```
+   cd ./smetweb-epidemes
+   ./gradlew bootJar
+   ```
+3. Run the (web) application
+   ```
+   > java -jar ./model/build/libs/model-0.0.1-SNAPSHOT.jar
+   ```
+   or
+   ```
+   > java -jar ./webapp/build/libs/webapp-0.0.1-SNAPSHOT.jar
+   ```
+   Exposes:
+    * H2 db console: http://localhost:8080/h2-console/
+    * OpenAPI v3 spec: http://localhost:8080/v3/api-docs/swagger-config
+    * OpenAPI ui: http://localhost:8080/swagger-ui/index.html?configUrl=/v3/api-docs/swagger-config
+
+### Changes
 This Smet WEB-adaptation includes: 
 * replacing the build system (Maven &rarr; Gradle/Kotlin DSL);
 * porting the programming language (Java 8 &rarr; Kotlin 1.3/Java 11); 
-* standardizing the dependency injection mechanism ([Coala/Guice](https://github.com/krevelen/coala-binder) &rarr; Spring-Boot);
+* standardizing the dependency injection mechanism ([Coala/Guice](https://github.com/krevelen/coala-binder) &rarr; Spring-Boot v2);
 * etc.
 
 ## Alternatives

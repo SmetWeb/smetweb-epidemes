@@ -7,11 +7,11 @@ import java.util.*
 
 /**
  * [UuidNameRef] is a special [NameRef] structure which ensures
- * that the root or [getRootRef] value is of type [UUID]
+ * that the root or [rootRef] value is of type [UUID]
  */
 @Suppress("UNCHECKED_CAST")
 data class UuidNameRef(
-		private val parentRef: UuidNameRef? = null,
+		override val parentRef: UuidNameRef? = null,
 		override val value: Comparable<*>
 ): NameRef {
 
@@ -67,8 +67,6 @@ data class UuidNameRef(
 			},
 			value = values[0])
 
-	override fun getParentRef(): UuidNameRef? = parentRef
-
-	override fun getRootRef(): UUID = super.getRootRef() as UUID
+	override fun rootRef(): UUID = super.rootRef() as UUID
 
 }

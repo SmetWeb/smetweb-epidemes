@@ -15,7 +15,7 @@ import java.util.*
  */
 interface PseudoRandom {
 
-	fun seed(): Number
+	val seed: Number
 
 	/** @see Random.nextBoolean */
 	fun nextBoolean(): Boolean

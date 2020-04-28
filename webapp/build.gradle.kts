@@ -1,51 +1,43 @@
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
+val mainClass: String = "io.smetweb.web.SmetWebApplication"
+
 plugins {
 	kotlin("jvm")
 
-	// execute a 'mainClassName', see https://docs.gradle.org/current/userguide/application_plugin.html
-//	application
-
 	id("org.jetbrains.kotlin.plugin.spring")
+	id("com.github.johnrengelman.processes") version "0.5.0"
+	id("org.springdoc.openapi-gradle-plugin") version "1.0.0"
 }
 
-//application {
-//	mainClassName = "io.xchain.demo.Main"
-//}
-
-// separate boot-jar, see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/#packaging-executable-wars
+// see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
 tasks.withType<BootJar> {
-	@Suppress("DEPRECATION")
-	classifier = "boot"
-//	archiveClassifier = "boot" ??
-
-	// same for Kotlin? see https://stackoverflow.com/a/44293970
-	mainClassName = "io.xchain.demo.MainKt"
+	mainClassName = mainClass
 	manifest {
-		attributes("Start-Class" to "io.xchain.demo.DemoApplicationKt")
-	}
-	launchScript {
-		properties(mapOf("logFilename" to "example-app.log"))
+		attributes("Start-Class" to mainClass)
 	}
 }
 
 dependencies {
 	val h2Version: String by project
-	val springfoxVersion: String by project
+	val springdocVersion: String by project
 
-	api(project(":persist"))
-	api("io.springfox:springfox-data-rest:$springfoxVersion")
-	api("io.springfox:springfox-swagger2:$springfoxVersion")
-	api("io.springfox:springfox-swagger-ui:$springfoxVersion")
+	api(project(":model"))
 
-	testImplementation("org.springframework.boot:spring-boot-starter-test") {
-		exclude(group = "junit", module = "junit")
-	}
-	testImplementation("com.h2database:h2:$h2Version")
+	// see https://springdoc.org/
+	api(group = "org.springdoc", name = "springdoc-openapi-kotlin", version = springdocVersion)
+	api(group = "org.springdoc", name = "springdoc-openapi-ui", version = springdocVersion)
+	api(group = "org.springdoc", name = "springdoc-openapi-data-rest", version = springdocVersion)
+
+	api(group = "org.springframework.boot", name = "spring-boot-starter-web")
+	api(group = "org.springframework.boot", name = "spring-boot-starter-actuator")
+	api(group = "com.h2database", name = "h2", version = h2Version)
 
 	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
 	testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine")
-
-	// make deployable and executable, see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/#packaging-executable-wars-deployable
-	runtimeOnly("org.springframework.boot:spring-boot-starter-tomcat")
+	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
+		exclude(module = "junit")
+		exclude(group = "org.junit.vintage")
+		exclude(module = "mockito-core")
+	}
 }

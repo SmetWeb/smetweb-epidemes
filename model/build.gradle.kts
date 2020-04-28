@@ -1,6 +1,20 @@
+import org.springframework.boot.gradle.tasks.bundling.BootJar
+
 plugins {
 	kotlin("jvm")
-	id("java")
+	kotlin("kapt")
+
+	id("org.jetbrains.kotlin.plugin.spring")
+}
+
+val mainClass: String = "io.smetweb.sim.CommandLineApplication"
+
+// see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
+tasks.withType<BootJar> {
+	mainClassName = mainClass
+	manifest {
+		attributes("Start-Class" to mainClass)
+	}
 }
 
 dependencies {
@@ -8,31 +22,26 @@ dependencies {
 	val dsolVersion: String by project
 	val h2Version: String by project
 
-	api(project(":domain"))
+	api(project(":core"))
 
 	api(kotlin("stdlib-jdk8"))
 	api(kotlin("reflect"))
 
 	// D-SOL simulator
 	api(group = "dsol", name = "dsol-core", version = dsolVersion)
-//	runtimeOnly(group = "dsol", name = "dsol-web", version = dsolVersion)
-//	runtimeOnly(group = "dsol", name = "dsol-demo", version = dsolVersion)
-//	runtimeOnly(group = "dsol", name = "dsol-zmq", version = dsolVersion)
-//	runtimeOnly(group = "dsol", name = "dsol-build-tools", version = dsolVersion)
-
-	// Jason agentspeak
-//	api(group = "net.sf.jason", name = "jason", version = "2.3")
 
 	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
-
-	// persist (JPA)
-	compileOnly(group = "javax.persistence", name = "javax.persistence-api", version = "2.2")
+	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")
 
 	// test
-	testImplementation("com.h2database:h2:$h2Version")
-	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test")
-	testImplementation(group = "org.awaitility", name = "awaitility-kotlin", version = "4.0.2")
-
-	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
+	testImplementation(group = "com.h2database", name = "h2", version = h2Version)
 	testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine")
+	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
+	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
+		exclude(module = "junit")
+		exclude(group = "org.junit.vintage")
+		exclude(module = "mockito-core")
+	}
+	testImplementation("com.ninja-squad:springmockk:1.1.3")
+	testImplementation(group = "org.awaitility", name = "awaitility-kotlin", version = "4.0.2")
 }

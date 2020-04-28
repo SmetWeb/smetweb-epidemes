@@ -58,20 +58,14 @@ val lastTask = Action<Task> {
 // see https://spring.io/guides/gs/multi-module/
 allprojects {
 
-	group = "io.xchain"
+	group = "io.smetweb"
 	version = "0.0.1-SNAPSHOT"
 
 	repositories {
 		jcenter()
 		mavenCentral()
-
-		// for 'dsol:dsol-*:3.x'
 		maven(url = "https://simulation.tudelft.nl/maven")
-
-		// for 'org.djutils:djutils:1.00.06'
 		maven(url = "https://djutils.org/maven")
-
-		// for 'org.djunits:djunits:3.01.04'
 		maven(url = "https://djunits.org/maven")
 	}
 

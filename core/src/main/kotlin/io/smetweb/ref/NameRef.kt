@@ -2,32 +2,33 @@ package io.smetweb.ref
 
 /**
  * A [NameRef] is a [Ref] wrapping any ([Comparable]) value
- * and a ([Comparable]) [getParentRef] (or `null`) in some ordinal or sorted
- * name space tree, such that [getRootRef] recursively resolves the tree's root name value
+ * and a ([Comparable]) [parentRef] (or `null`) in some ordinal or sorted
+ * name space tree, such that [rootRef] recursively resolves the tree's root name value
  */
 @FunctionalInterface
 interface NameRef : Ref<Comparable<*>>, Comparable<Comparable<*>> {
 
-	fun getParentRef() : NameRef? = null
+	val parentRef: NameRef?
+		get() = null
 
-	fun getRootRef(): Comparable<*> {
+	fun rootRef(): Comparable<*> {
 		var i: NameRef = this
-		while (i.getParentRef() != null) {
-			i = i.getParentRef() as NameRef
+		while (i.parentRef != null) {
+			i = i.parentRef as NameRef
 		}
 		return i.get()
 	}
 
 	override fun compareTo(other: Comparable<*>): Int {
 		if (other !is NameRef)
-			return if (getParentRef() == null)
+			return if (this.parentRef == null)
 			// context/root value (no parent), i.e. T: Comparable<T>
 				uncheckedCompare(this, other)
 			else
 				throw IllegalArgumentException(
 						"Undefined comparison: '$this' <> '$other'")
-		val parentCompare = getParentRef()?.let {
-			uncheckedCompare(it as Comparable<*>, other.getParentRef() as Comparable<*>)
+		val parentCompare = parentRef?.let {
+			uncheckedCompare(it as Comparable<*>, other.parentRef as Comparable<*>)
 		} ?: 0
 		return if (parentCompare != 0)
 			parentCompare
@@ -40,7 +41,7 @@ interface NameRef : Ref<Comparable<*>>, Comparable<Comparable<*>> {
 		@JvmStatic
 		fun of(value: Comparable<*>, parentRef: NameRef? = null) = object: NameRef {
 			override val value = value
-			override fun getParentRef() = parentRef
+			override val parentRef = parentRef
 			override fun toString(): String = toHashString(this)
 		}
 
@@ -79,14 +80,14 @@ interface NameRef : Ref<Comparable<*>>, Comparable<Comparable<*>> {
 		@JvmStatic
 		fun toString(nameRef: NameRef, rootWriter: (Any) -> String = Any::toString): String {
 			var result = nameRef.get().toString()
-			var id = nameRef.getParentRef()
+			var id = nameRef.parentRef
 			while (id != null) {
 				val value = id.get()
-				if (id.getParentRef() == null)
+				if (id.parentRef == null)
 					result += ROOT_SEPARATOR + rootWriter(value)
 				else
 					result = value.toString() + VALUE_SEPARATOR + result
-				id = id.getParentRef()
+				id = id.parentRef
 			}
 			return result
 		}

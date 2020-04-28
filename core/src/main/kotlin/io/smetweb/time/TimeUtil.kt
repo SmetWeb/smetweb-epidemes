@@ -1,7 +1,6 @@
 package io.smetweb.time
 
 import io.smetweb.math.*
-import org.joda.time.Period
 import si.uom.NonSI
 import tec.uom.se.ComparableQuantity
 import tec.uom.se.quantity.Quantities
@@ -10,6 +9,7 @@ import tec.uom.se.unit.Units
 import java.math.BigDecimal
 import java.time.DateTimeException
 import java.time.Duration
+import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalUnit
 import java.time.temporal.UnsupportedTemporalTypeException
@@ -204,19 +204,20 @@ fun Unit<Time>.toTemporalUnit(): TemporalUnit =
  * @see java.time.Duration.parse
  * @see org.joda.time.format.ISOPeriodFormat.standard
  */
-fun CharSequence.parseDuration(): ComparableQuantity<*> =
+fun CharSequence.parseDuration(offset: Instant? = null): ComparableQuantity<Time> =
         try {
-            this.parseQuantity()
+            this.parseQuantity().asType(Time::class.java)
         } catch (e: Exception) {
             try {
                 Duration.parse(this).toQuantity()
             } catch (f: Exception) {
                 try {
-                    JodaUtil.toQuantity(JodaUtil.parsePeriod(this))
+                    JodaUtil.toQuantity(JodaUtil.parsePeriod(this), offset?.toEpochMilli())
                 } catch (g: Exception) {
-                    throw IllegalArgumentException(
-                            "Unable to parse '$this' with JSR-363: '" + parsedStringOrMessage(e)
-                                    + "', JSR-310: '${f.message}', Joda: '${g.message}'")
+                    throw IllegalArgumentException("Unable to parse '$this'" +
+                            "\n\tjavax.measure: ${parsedStringOrMessage(e)}" +
+                            "\n\t    java.time: ${parsedStringOrMessage(f)}" +
+                            "\n\t    joda-time: ${g.message}")
                 }
             }
         }
@@ -230,16 +231,17 @@ interface JodaUtil {
         val THOUSAND: BigDecimal = BigDecimal.TEN.pow(3)
 
         @JvmStatic
-        fun parsePeriod(value: CharSequence): Period =
-                Period.parse(value.toString())
+        fun parsePeriod(value: CharSequence): org.joda.time.Period =
+                org.joda.time.Period.parse(value.toString())
 
         @JvmStatic
-        fun decimalSeconds(value: Period): BigDecimal =
-                value.toStandardDuration().millis.toBigDecimal().divide(THOUSAND)
+        fun decimalSeconds(value: org.joda.time.Period, offset: Long? = null): BigDecimal =
+                (offset?.let { value.toDurationFrom(org.joda.time.Instant.ofEpochMilli(it)) }
+                        ?: value.toStandardDuration()).millis.toBigDecimal().divide(THOUSAND)
 
         @JvmStatic
-        fun toQuantity(value: Period): ComparableQuantity<Time> =
-                decimalSeconds(value).toQuantity(Units.SECOND)
+        fun toQuantity(value: org.joda.time.Period, offset: Long? = null): ComparableQuantity<Time> =
+                decimalSeconds(value, offset).toQuantity(Units.SECOND)
     }
 
 }

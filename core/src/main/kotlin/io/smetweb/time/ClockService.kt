@@ -1,7 +1,5 @@
 package io.smetweb.time
 
-import io.smetweb.time.TimeRef
-import io.smetweb.time.toQuantity
 import tec.uom.se.ComparableQuantity
 import java.time.Clock
 import java.time.Duration
