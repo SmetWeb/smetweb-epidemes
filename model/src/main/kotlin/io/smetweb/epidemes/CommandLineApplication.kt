@@ -1,6 +1,8 @@
-package io.smetweb.sim
+package io.smetweb.epidemes
 
+import io.smetweb.epidemes.deme.DemeConfig
 import io.smetweb.log.getLogger
+import io.smetweb.sim.ScenarioConfig
 import org.springframework.boot.Banner
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -16,8 +18,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 @EntityScan(basePackages = ["io.smetweb.uuid", "io.smetweb.time", "io.smetweb.sim.event"])
 @EnableScheduling
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
-@EnableConfigurationProperties(ScenarioConfig::class)
-open class CommandLineApplication(
+@EnableConfigurationProperties(ScenarioConfig::class, DemeConfig::class)
+class CommandLineApplication(
         private val config: ScenarioConfig
 ) {
 
@@ -34,7 +36,7 @@ open class CommandLineApplication(
      * 8. start sim
      */
     @Bean
-    open fun runner(): CommandLineRunner = CommandLineRunner { args ->
+    fun runner(): CommandLineRunner = CommandLineRunner { args ->
         log.info("Started. args: {}, config: {}", args, this.config)
     }
 

@@ -1,14 +1,11 @@
 package io.smetweb.sim
 
-import io.smetweb.time.parseDuration
-import org.springframework.beans.factory.annotation.Value
+import io.smetweb.time.parseTimeQuantity
+import io.smetweb.time.parseZonedDateTime
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.ConstructorBinding
-import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.bind.DefaultValue
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
+import java.time.*
 import javax.measure.Quantity
 import javax.measure.quantity.Time
 
@@ -25,6 +22,8 @@ data class ScenarioConfig(
         @DefaultValue("2000-01-01")
         private val offsetDate: String = "2100-01-01",
 
+        private val randomSeed: Long = System.currentTimeMillis(),
+
         @DefaultValue("default analyst")
         val analyst: String? = null,
 
@@ -33,16 +32,15 @@ data class ScenarioConfig(
 
 ) {
 
-        val zone: ZoneId = ZoneId.systemDefault()
+        val start: ZonedDateTime =
+                this.offsetDate.parseZonedDateTime()
 
-        val epoch: Instant by lazy {
-                LocalDate.parse(this.offsetDate).atStartOfDay().atZone(this.zone).toInstant()
-        }
+        val epoch: Instant =
+                this.start.toInstant()
 
-        val duration: Quantity<Time> by lazy {
-                this.durationPeriod.parseDuration(this.epoch)
-        }
+        val duration: Quantity<Time> =
+                this.durationPeriod.parseTimeQuantity(this.epoch)
 
         override fun toString(): String =
-                "scenario[name: $setupName, start: ${epoch.atZone(zone)}, duration: $duration]"
+                "scenario[name: $setupName, start: $start, duration: $duration]"
 }

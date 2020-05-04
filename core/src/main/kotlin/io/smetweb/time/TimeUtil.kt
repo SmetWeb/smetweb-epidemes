@@ -7,9 +7,8 @@ import tec.uom.se.quantity.Quantities
 import tec.uom.se.unit.MetricPrefix
 import tec.uom.se.unit.Units
 import java.math.BigDecimal
-import java.time.DateTimeException
-import java.time.Duration
-import java.time.Instant
+import java.time.*
+import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalUnit
 import java.time.temporal.UnsupportedTemporalTypeException
@@ -33,6 +32,29 @@ val MICROSECOND = MetricPrefix.MICRO(SECOND)!!
 val NANOSECOND = MetricPrefix.NANO(SECOND)!!
 
 val HALF_DAY = Units.DAY.divide(2.0)!!
+
+fun CharSequence.parseZonedDateTime() =
+        try {
+            // e.g. "2007-12-03T10:15:30+01:00[Europe/Paris]"
+            ZonedDateTime.parse(this)
+        } catch(e: DateTimeParseException) {
+            try {
+                // e.g. "2007-12-03T10:15:30+01:00"
+                OffsetDateTime.parse(this).toZonedDateTime()
+            } catch(e: DateTimeParseException) {
+                try {
+                    // e.g. "2007-12-03T10:15:30"
+                    LocalDateTime.parse(this).atZone(ZoneId.systemDefault())
+                } catch(e: DateTimeParseException) {
+                    try {
+                        // e.g. "2007-12-03"
+                        LocalDate.parse(this).atStartOfDay(ZoneId.systemDefault())
+                    } catch(e: DateTimeParseException) {
+                        ZonedDateTime.now()
+                    }
+                }
+            }
+        }
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.value(unit: TimeUnit): Number =
@@ -204,7 +226,7 @@ fun Unit<Time>.toTemporalUnit(): TemporalUnit =
  * @see java.time.Duration.parse
  * @see org.joda.time.format.ISOPeriodFormat.standard
  */
-fun CharSequence.parseDuration(offset: Instant? = null): ComparableQuantity<Time> =
+fun CharSequence.parseTimeQuantity(offset: Instant? = null): ComparableQuantity<Time> =
         try {
             this.parseQuantity().asType(Time::class.java)
         } catch (e: Exception) {

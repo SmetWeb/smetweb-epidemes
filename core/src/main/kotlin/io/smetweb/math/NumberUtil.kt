@@ -5,11 +5,14 @@ import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import org.apfloat.ApfloatRuntimeException
 import org.apfloat.Apint
+import tec.uom.se.ComparableQuantity
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.MathContext
 import java.math.RoundingMode
 import java.time.ZonedDateTime
+import java.util.Comparator
+import javax.measure.Quantity
 import kotlin.experimental.and
 
 /**
@@ -34,10 +37,16 @@ val MEGA = BigDecimal.TEN.pow(6)!!
 val E: BigDecimal = BigDecimal.valueOf(Math.E)!!
 
 /**  */
-private val TWO: Apfloat = Apint(2)
+val TWO: Apfloat = Apint(2)
 
 /**  */
 const val hexFF: Byte = 0xFF.toByte()
+
+fun <T: Comparable<T>> minOf(vararg values: T): T =
+		values.minWith(Comparator.naturalOrder())!!
+
+fun <T: Comparable<T>> maxOf(vararg values: T): T =
+		values.maxWith(Comparator.naturalOrder())!!
 
 /**
  * @return `true` iff the [BigDecimal] has scale `<=0`
@@ -254,7 +263,7 @@ fun Number.toDegrees(): BigDecimal =
  * @param subtrahend
  * @return the [BigDecimal] subtraction with [DEFAULT_CONTEXT] precision
  */
-fun Number.subtractFrom(subtrahend: Number): BigDecimal =
+fun Number.subtract(subtrahend: Number): BigDecimal =
 		this.toDecimal().subtract(subtrahend.toDecimal(), DEFAULT_CONTEXT)
 
 /**
@@ -350,15 +359,6 @@ fun Number.pow(exponent: Int): BigDecimal =
 			is Apfloat -> ApfloatMath.pow(this.toApfloat(), exponent.toLong()).toDecimal()
 			else -> this.toDecimal().pow(exponent, DEFAULT_CONTEXT)
 		}
-
-/**
- * @param value
- * @param exponent
- * @return the power of value raised to exponent
- */
-fun pow(value: Apfloat?, exponent: Long): Number? {
-	return pow(value as Apfloat?, exponent)
-}
 
 /**
  * @param posix the POSIX [ZonedDateTime] time stamp (seconds + nanos)

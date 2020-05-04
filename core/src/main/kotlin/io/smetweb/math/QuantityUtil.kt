@@ -270,11 +270,11 @@ fun <Q: Quantity<Q>> Quantity<Q>.doubleValue(): Double =
 fun <Q: Quantity<Q>> Quantity<Q>.doubleValue(unit: Unit<Q>): Double =
         this.toUnit(unit).doubleValue()
 
-fun <Q: Quantity<Q>> min(vararg quantities: Quantity<Q>): ComparableQuantity<Q>? =
-        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())
+fun <Q: Quantity<Q>> minOf(vararg quantities: Quantity<Q>): ComparableQuantity<Q> =
+        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())!!
 
-fun <Q: Quantity<Q>> max(vararg quantities: Quantity<Q>): ComparableQuantity<Q>? =
-        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())
+fun <Q: Quantity<Q>> maxOf(vararg quantities: Quantity<Q>): ComparableQuantity<Q> =
+        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())!!
 
 fun <Q: Quantity<Q>> Quantity<Q>.approximates(that: Quantity<Q>, precision: Int): Boolean =
         this.value.scale(precision - 1).compareTo(that.toUnit(this.unit).value.scale(precision - 1)) == 0

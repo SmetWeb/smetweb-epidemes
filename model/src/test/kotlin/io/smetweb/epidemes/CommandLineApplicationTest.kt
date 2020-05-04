@@ -1,4 +1,4 @@
-package io.smetweb.sim
+package io.smetweb.epidemes
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
