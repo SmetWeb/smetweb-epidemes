@@ -10,6 +10,7 @@ import java.util.SortedMap
  * "https://gist.github.com/dhadka/f5a3adc36894cc6aebcaf3dc1bbcef9f">ThreadLocal</a>
  * or
  * <a href="https://github.com/jopasserat/tasklocalrandom">TaskLocalRandom</a>
+ *
  * @see PseudoRandomJava
  * @see PseudoRandomKotlin
  */
@@ -34,8 +35,28 @@ interface PseudoRandom {
 
 	fun nextFloat(): Float
 
+	fun nextFloatRange(includeZero: Boolean, includeOne: Boolean): Float {
+		var d: Float
+		do {
+			d = nextFloat() // grab a value, initially from half-open [0.0f, 1.0f)
+			if (includeOne && nextBoolean()) d += 1.0f // if includeOne, with 1/2 probability, push to [1.0f, 2.0f)
+		} while (d > 1.0f ||  // everything above 1.0f is always invalid
+				!includeZero && d == 0.0f) // if we're not including zero, 0.0f is invalid
+		return d
+	}
+
 	/** @return next [Double] (i.e. 64-bit precision) decimal value in [0,1] */
 	fun nextDouble(): Double
+
+	fun nextDoubleRange(includeZero: Boolean, includeOne: Boolean): Double {
+		var d: Double
+		do {
+			d = nextDouble() // grab a value, initially from half-open [0.0, 1.0)
+			if (includeOne && nextBoolean()) d += 1.0 // if includeOne, with 1/2 probability, push to [1.0, 2.0)
+		} while (d > 1.0 ||  // everything above 1.0 is always invalid
+				!includeZero && d == 0.0) // if we're not including zero, 0.0 is invalid
+		return d
+	}
 
 	fun nextGaussian(): Double =
 			this::nextDouble.nextGaussian()

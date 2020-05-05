@@ -17,6 +17,8 @@ dependencies {
 	val persistenceApiVersion: String by project
 	val concurrentApiVersion: String by project
 	val uomVersion: String by project
+	val math3Version: String by project
+	val ejmlVersion: String by project
 	val rxJavaVersion: String by project
 	val rxKotlinVersion: String by project
 	val apFloatVersion: String by project
@@ -36,7 +38,13 @@ dependencies {
 	// units of measurement (JSR-363)
 	api(group = "systems.uom", name = "systems-common-java8", version = uomVersion)
 
-	// arbitrary precision floating point calculations (degrees from/to radians, factorials, etc.)
+	// commons-math3, including RNGs, distributions, algorithms, etc.
+	api(group = "org.apache.commons", name = "commons-math3", version = math3Version)
+
+	// Efficient Java Matrix Library for linear algebra on real/complex/dense/sparse matrices
+	api(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
+
+	// arbitrary-precision floating point calculations (degrees from/to radians, factorials, etc.)
 	api(group = "org.apfloat", name = "apfloat", version = apFloatVersion)
 
 	// persistence (JPA, multiple JSRs)
