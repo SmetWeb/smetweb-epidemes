@@ -5,20 +5,21 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import nl.tudelft.simulation.dsol.experiment.Experiment
 import nl.tudelft.simulation.dsol.experiment.Replication
+import nl.tudelft.simulation.dsol.experiment.Replication.*
 import nl.tudelft.simulation.dsol.experiment.Treatment
 import nl.tudelft.simulation.dsol.model.inputparameters.InputParameterMap
 import nl.tudelft.simulation.dsol.model.outputstatistics.OutputStatistic
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
-import nl.tudelft.simulation.dsol.simulators.SimulatorInterface.*
+import nl.tudelft.simulation.dsol.simulators.DESSSimulatorInterface.*
 import org.djutils.event.EventInterface
-import org.djutils.event.EventType
+import org.djutils.event.EventTypeInterface
 import org.djutils.event.TimedEvent
 import tec.uom.se.ComparableQuantity
 import java.math.BigDecimal
 import javax.measure.quantity.Time
 
 @Suppress("REDUNDANT_LABEL_WARNING")
-fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventType): Observable<EventInterface> =
+fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventTypeInterface): Observable<EventInterface> =
 		Observable.create { emitter ->
 			eventTypes.map { type -> DEVSSimulatorInterface@this.addListener(emitter::onNext, type) }
 			DEVSSimulatorInterface@this.addListener(
@@ -31,14 +32,14 @@ fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventType): Observab
  * based on given some [analyst], some [description] and (required) treatment [treatment]
  */
 fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.createExperiment(
-        treatment: DsolTreatment,
-        analyst: String? = null,
-        description: String? = null,
-        inputParameters: InputParameterMap? = null,
-        outputStatistics: MutableList<OutputStatistic<*>> = mutableListOf(),
-        emitStatus: BehaviorSubject<EventType> = BehaviorSubject.create(),
-        emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
-        model: DsolModel = object: DsolModel {
+		treatment: DsolTreatment,
+		analyst: String? = null,
+		description: String? = null,
+		inputParameters: InputParameterMap? = null,
+		outputStatistics: MutableList<OutputStatistic<*>> = mutableListOf(),
+		emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
+		emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
+		model: DsolModel = object: DsolModel {
 			override val statusSource = emitStatus
 			override val timeSource = emitTime
 			override fun getSimulator() = simulator
@@ -46,7 +47,7 @@ fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.cr
 			override fun getInputParameterMap() = inputParameters
 			override fun constructModel() { /* no-op */ }
 		},
-        simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this
+		simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this
 ) = Experiment<ComparableQuantity<Time>, BigDecimal, DsolTimeRef,
 		DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>>().apply {
 	this.analyst = analyst
@@ -67,7 +68,7 @@ fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.cr
 	simulator.scheduleEventAbs(DsolTimeRef.T_ZERO) { Thread.currentThread().name = treatment.name }
 
 	// feed the observable simulator status stream
-	simulator.emit(START_EVENT, STOP_EVENT, STEP_EVENT, WARMUP_EVENT,
+	simulator.emit(START_EVENT, STOP_EVENT, TIME_STEP_CHANGED_EVENT, WARMUP_EVENT,
 			END_REPLICATION_EVENT, START_REPLICATION_EVENT)
 			.map(EventInterface::getType)
 			.subscribe(emitStatus)

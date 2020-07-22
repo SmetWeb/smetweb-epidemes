@@ -2,6 +2,7 @@ package io.smetweb.web
 
 import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
+import org.springframework.boot.Banner
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.builder.SpringApplicationBuilder
@@ -24,9 +25,9 @@ class SmetWebApplication : SpringBootServletInitializer() {
 
     private val log = getLogger()
 
-    init {
-        setRegisterErrorPageFilter(false)
-    }
+//    init {
+//        setRegisterErrorPageFilter(false)
+//    }
 
 //    @Bean (workaround for springfox-data-rest, see https://github.com/springfox/springfox/issues/2932#issuecomment-578799229)
 //    fun discoverers(relProviderPluginRegistry: OrderAwarePluginRegistry<LinkDiscoverer, MediaType>):
@@ -49,7 +50,9 @@ class SmetWebApplication : SpringBootServletInitializer() {
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            runApplication<SmetWebApplication>(*args)
+            runApplication<SmetWebApplication>(*args) {
+                setBannerMode(Banner.Mode.OFF)
+            }
         }
     }
 }

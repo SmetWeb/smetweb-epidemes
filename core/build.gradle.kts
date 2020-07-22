@@ -18,6 +18,7 @@ dependencies {
 	val concurrentApiVersion: String by project
 	val uomVersion: String by project
 	val math3Version: String by project
+	val ujmpVersion: String by project
 	val ejmlVersion: String by project
 	val rxJavaVersion: String by project
 	val rxKotlinVersion: String by project
@@ -25,6 +26,7 @@ dependencies {
 	val javaUuidGeneratorVersion: String by project
 	val jodaTimeVersion: String by project
 	val dsolVersion: String by project
+	val jeromqVersion: String by project
 	val hibernateVersion: String by project
 	val h2Version: String by project
 
@@ -39,10 +41,13 @@ dependencies {
 	api(group = "systems.uom", name = "systems-common-java8", version = uomVersion)
 
 	// commons-math3, including RNGs, distributions, algorithms, etc.
-	api(group = "org.apache.commons", name = "commons-math3", version = math3Version)
+	compileOnly(group = "org.apache.commons", name = "commons-math3", version = math3Version)
 
 	// Efficient Java Matrix Library for linear algebra on real/complex/dense/sparse matrices
-	api(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
+	compileOnly(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
+
+	// Universal Java MAtrix Package, incorporating dense matrix classes from Apache commons math
+	compileOnly(group = "org.ujmp", name = "ujmp-commonsmath", version = ujmpVersion)
 
 	// arbitrary-precision floating point calculations (degrees from/to radians, factorials, etc.)
 	api(group = "org.apfloat", name = "apfloat", version = apFloatVersion)
@@ -69,15 +74,15 @@ dependencies {
 
 	// D-SOL simulator, see https://simulation.tudelft.nl
 	api(group = "dsol", name = "dsol-core", version = dsolVersion)
+	api(group = "dsol", name = "dsol-zmq", version = dsolVersion)
+	api(group = "org.zeromq", name = "jeromq", version = jeromqVersion)
 //	runtimeOnly(group = "dsol", name = "dsol-web", version = dsolVersion)
 //	runtimeOnly(group = "dsol", name = "dsol-demo", version = dsolVersion)
-//	runtimeOnly(group = "dsol", name = "dsol-zmq", version = dsolVersion)
 //	runtimeOnly(group = "dsol", name = "dsol-build-tools", version = dsolVersion)
 
-	// Jason agentspeak, see https://github.com/jason-lang/jason (latest as of 2020 is v2.4 not in mvn repo)
-//	api(group = "net.sf.jason", name = "jason", version = "2.3")
+	// Jason agentspeak, see https://github.com/jason-lang/jason (latest not yet in mvn repo)
+	compileOnly(group = "net.sf.jason", name = "jason", version = "2.3")
 
-//	compileOnly(group = "org.springframework", name = "spring-context")
 	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
 	kapt(group = "org.hibernate", name = "hibernate-jpamodelgen", version = hibernateVersion)
 	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")

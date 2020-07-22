@@ -4,7 +4,7 @@ import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
 import io.smetweb.time.ClockService
 import org.awaitility.kotlin.await
-import org.djutils.event.EventType
+import org.djutils.event.EventTypeInterface
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.*
 import org.mockito.Mockito.*
@@ -47,7 +47,7 @@ class DsolTaskSchedulerTest {
 		assertNotNull(scheduler)
 		// add some introspection
 		scheduler.model().statusSource.subscribe(
-				{ s: EventType -> log.debug("{} emitted", s) },
+				{ s: EventTypeInterface -> log.debug("{} emitted", s) },
 				{ e: Throwable -> log.error("Simulator failed: {}", e.message, e) },
 				{ log.debug("Simulation complete") } )
 		scheduler.model().timeSource.subscribe(
@@ -61,8 +61,8 @@ class DsolTaskSchedulerTest {
 		log.debug("Verifying at least {} scheduled calls occur within max {}...", n, dt)
 
 		scheduler.start()
+		// will poll every 100ms, and kill the test on first success, or times out (failure)
 		await.atMost(dt).untilAsserted {
-			// will poll every 100ms, and kill the simulation on success
 			verify(tasks, atLeast(n)).reportCurrentTime()
 		}
 	}

@@ -21,6 +21,7 @@ tasks.withType<BootJar> {
 dependencies {
 	val h2Version: String by project
 	val springdocVersion: String by project
+//	val ktorVersion: String by project
 
 	api(project(":model"))
 
@@ -32,6 +33,7 @@ dependencies {
 	api(group = "org.springframework.boot", name = "spring-boot-starter-web")
 	api(group = "org.springframework.boot", name = "spring-boot-starter-actuator")
 	api(group = "com.h2database", name = "h2", version = h2Version)
+//	api(group = "io.ktor", name = "ktor-server-netty", version = ktorVersion)
 
 	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
 	testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine")

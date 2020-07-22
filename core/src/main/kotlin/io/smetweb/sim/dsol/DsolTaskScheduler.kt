@@ -10,7 +10,6 @@ import nl.tudelft.simulation.dsol.experiment.Experiment
 import nl.tudelft.simulation.dsol.formalisms.eventscheduling.SimEventInterface
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulator
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
-import org.springframework.stereotype.Service
 import tec.uom.se.ComparableQuantity
 import java.io.Serializable
 import java.math.BigDecimal
@@ -24,7 +23,6 @@ import javax.measure.quantity.Time
  * [DsolTaskScheduler] is a [ManagedTaskScheduler] and Spring [Service] that delegates to
  * a D-SOL [DEVSSimulatorInterface] which operates in [DsolTimeRef]-type time lines
  */
-@Service
 @Suppress("REDUNDANT_LABEL_WARNING")
 class DsolTaskScheduler(
 		private val scenarioConfig: ScenarioConfig,
