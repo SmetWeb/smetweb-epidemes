@@ -74,8 +74,8 @@ data class UuidNameRefEntity(
 
 	fun toUuidNameRef(
 			parentRef: UuidNameRef? = this.parentRef?.toUuidNameRef()
-					?: UuidNameRef(this.contextRef!!)
-	) = UuidNameRef(parentRef = parentRef, value = this.value!!)
+					?: UuidNameRef(this.contextRef ?: error("Attribute not loaded?"))
+	) = UuidNameRef(parentRef = parentRef, value = this.value ?: error("Attribute not loaded?"))
 
 	companion object {
 

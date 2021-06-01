@@ -1,6 +1,6 @@
 package io.smetweb.time
 
-import tec.uom.se.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant

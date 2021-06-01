@@ -2,7 +2,7 @@ package io.smetweb.time
 
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import tec.uom.se.unit.Units
+import tech.units.indriya.unit.Units
 import java.time.DateTimeException
 import java.time.Duration
 import java.time.Instant

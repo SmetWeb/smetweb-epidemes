@@ -24,15 +24,15 @@ data class Range<T: Comparable<*>>(
             this(lower = Extreme.lower(minimum, minimumInclusive),
                     upper = Extreme.upper(maximum, maximumInclusive))
 
-	fun lowerValue(): T = lower.value!!
+	fun lowerValue(): T = lower.value ?: error("Infinite")
 
-	fun lowerInclusive(): Boolean = lower.inclusive!!
+	fun lowerInclusive(): Boolean = lower.inclusive ?: error("Infinite")
 
     fun lowerFinite(): Boolean = lower.isFinite()
 
-    fun upperValue(): T = upper.value!!
+    fun upperValue(): T = upper.value ?: error("Infinite")
 
-    fun upperInclusive(): Boolean = upper.inclusive!!
+    fun upperInclusive(): Boolean = upper.inclusive ?: error("Infinite")
 
     fun upperFinite(): Boolean = upper.isFinite()
 
@@ -86,9 +86,9 @@ data class Range<T: Comparable<*>>(
     }
 
     fun <R: Comparable<R>> map(mapper: (T?) -> R?): Range<R>? {
-        val lower = mapper(lowerValue())
-        val upper = mapper(upperValue())
-        return if (lowerFinite() && upperFinite() && Compare.gt(lower!!, upper!!))
+        val lower = mapper(lowerValue()) ?: error("Infinite")
+        val upper = mapper(upperValue()) ?: error("Infinite")
+        return if (lowerFinite() && upperFinite() && Compare.gt(lower, upper))
             Range(upper, upperInclusive(), lower, lowerInclusive()) // reverse
         else
             Range(lower, lowerInclusive(), upper, upperInclusive())

@@ -1,0 +1,10 @@
+spring:
+  profiles: test
+
+scenario:
+  setupName: bleh
+
+smetweb:
+  name: test-host
+  httpPort: 1234
+  email-address: nonnull

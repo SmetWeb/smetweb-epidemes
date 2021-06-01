@@ -1,11 +1,11 @@
 package io.smetweb.math
 
-//import tec.uom.se.quantity.Quantities
+//import tech.units.indriya.quantity.Quantities
 import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import org.apfloat.ApfloatRuntimeException
 import org.apfloat.Apint
-import tec.uom.se.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.MathContext
@@ -22,19 +22,19 @@ import kotlin.experimental.and
 val DEFAULT_CONTEXT: MathContext = MathContext.DECIMAL64
 
 /** 5E-1 or 0.5  */
-val ONE_HALF = BigDecimal.valueOf(5, 1)!!
+val ONE_HALF: BigDecimal = BigDecimal.valueOf(5, 1)
 
 /** 1E3 or 1,000  */
-val KILO = BigDecimal.TEN.pow(3)!!
+val KILO: BigDecimal = BigDecimal.TEN.pow(3)
 
 /** 1E6 or 1,000,000  */
-val MEGA = BigDecimal.TEN.pow(6)!!
+val MEGA: BigDecimal = BigDecimal.TEN.pow(6)
 
 /**
  * Java's [Math.E] Euler's number, achievable by summing to 1/18! and
  * scaling to 15 digits: [Number.scale] `(` [euler] `(18), 15)`
  */
-val E: BigDecimal = BigDecimal.valueOf(Math.E)!!
+val E: BigDecimal = BigDecimal.valueOf(Math.E)
 
 /**  */
 val TWO: Apfloat = Apint(2)
@@ -43,10 +43,10 @@ val TWO: Apfloat = Apint(2)
 const val hexFF: Byte = 0xFF.toByte()
 
 fun <T: Comparable<T>> minOf(vararg values: T): T =
-		values.minWith(Comparator.naturalOrder())!!
+		values.minWithOrNull(Comparator.naturalOrder()) ?: error("Empty argument?")
 
 fun <T: Comparable<T>> maxOf(vararg values: T): T =
-		values.maxWith(Comparator.naturalOrder())!!
+		values.maxWithOrNull(Comparator.naturalOrder()) ?: error("Empty argument?")
 
 /**
  * @return `true` iff the [BigDecimal] has scale `<=0`

@@ -11,7 +11,7 @@ val mainClass: String = "io.smetweb.sim.CommandLineApplication"
 
 // see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
 tasks.withType<BootJar> {
-	mainClassName = mainClass
+	mainClassName = mainClass.toString()
 	manifest {
 		attributes("Start-Class" to mainClass)
 	}
@@ -30,6 +30,12 @@ dependencies {
 	// D-SOL simulator
 	api(group = "dsol", name = "dsol-core", version = dsolVersion)
 
+	// Spring
+//	api(group = "org.springframework.boot", name = "spring-boot-starter") {
+//		exclude(module = "spring-boot-starter-logging")
+//		exclude(module = "org.apache.logging.log4j", group = "log4j-to-slf4j")
+//	}
+	api(group = "org.springframework.boot", name = "spring-boot-starter-log4j2")
 	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
 	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")
 

@@ -6,24 +6,20 @@ import io.smetweb.math.decimalValue
 import io.smetweb.math.parseQuantity
 import io.smetweb.math.toQuantity
 import io.smetweb.ref.Ref
-import si.uom.NonSI
-import tec.uom.se.ComparableQuantity
-import tec.uom.se.unit.MetricPrefix
-import tec.uom.se.unit.Units
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.unit.Units
 import java.math.BigDecimal
 import java.time.DateTimeException
 import java.time.Duration
 import java.time.Instant
-import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalUnit
 import java.time.temporal.UnsupportedTemporalTypeException
-import java.util.*
+import java.util.Date
 import java.util.concurrent.TimeUnit
 import java.util.function.Supplier
 import javax.measure.Quantity
 import javax.measure.Unit
 import javax.measure.quantity.Time
-import javax.measure.spi.ServiceProvider
 
 /**
  * [TimeRef] is a [Supplier] that wraps some measurable amount or
@@ -99,31 +95,13 @@ interface TimeRef:
 	companion object {
 
 		@JvmStatic
-		val BASE_UNIT = Units.SECOND!!
+		val BASE_UNIT: Unit<Time> = Units.SECOND
 
 		@JvmStatic
 		val ZERO_UNITS = decimalUnits(BigDecimal.ZERO)
 
 		@JvmStatic
 		val T_ZERO = of(ZERO_UNITS)
-
-		@JvmStatic
-		val TIME_QUANTITY_FACTORY = ServiceProvider.current().getQuantityFactory(Time::class.java)!!
-
-		@JvmStatic
-		val SECOND = Units.SECOND!!
-
-		@JvmStatic
-		val MILLISECOND = MetricPrefix.MILLI(SECOND)!!
-
-		@JvmStatic
-		val MICROSECOND = MetricPrefix.MICRO(SECOND)!!
-
-		@JvmStatic
-		val NANOSECOND = MetricPrefix.NANO(SECOND)!!
-
-		@JvmStatic
-		val HALF_DAY = Units.DAY.divide(2.0)!!
 
 		@JvmStatic
 		fun of(value: ComparableQuantity<Time>) = Ordinal(value)

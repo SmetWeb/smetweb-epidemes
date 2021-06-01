@@ -1,4 +1,4 @@
-package io.smetweb.webapp.demo
+package io.smetweb.web
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest

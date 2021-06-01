@@ -2,10 +2,10 @@ package io.smetweb.time
 
 import io.smetweb.math.*
 import si.uom.NonSI
-import tec.uom.se.ComparableQuantity
-import tec.uom.se.quantity.Quantities
-import tec.uom.se.unit.MetricPrefix
-import tec.uom.se.unit.Units
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.quantity.time.TimeQuantities
+import tech.units.indriya.unit.Units
 import java.math.BigDecimal
 import java.time.*
 import java.time.format.DateTimeParseException
@@ -17,23 +17,18 @@ import javax.measure.Quantity
 import javax.measure.Unit
 import javax.measure.quantity.Dimensionless
 import javax.measure.quantity.Time
-import javax.measure.spi.ServiceProvider
 
-@Deprecated("does not expressively support [tec.uom.se.ComparableQuantity]",
-        replaceWith = ReplaceWith("tec.uom.se.quantity.Quantities.getQuantity"))
-val TIME_QUANTITY_FACTORY = ServiceProvider.current().getQuantityFactory(Time::class.java)!!
+val SECOND: Unit<Time> = Units.SECOND
 
-val SECOND = Units.SECOND!!
+val MILLISECOND: Unit<Time> = TimeQuantities.MILLISECOND
 
-val MILLISECOND = MetricPrefix.MILLI(SECOND)!!
+val MICROSECOND: Unit<Time> = TimeQuantities.MICROSECOND
 
-val MICROSECOND = MetricPrefix.MICRO(SECOND)!!
+val NANOSECOND: Unit<Time> = TimeQuantities.NANOSECOND
 
-val NANOSECOND = MetricPrefix.NANO(SECOND)!!
+val HALF_DAY: Unit<Time> = Units.DAY.divide(2.0)
 
-val HALF_DAY = Units.DAY.divide(2.0)!!
-
-fun CharSequence.parseZonedDateTime() =
+fun CharSequence.parseZonedDateTime(): ZonedDateTime =
         try {
             // e.g. "2007-12-03T10:15:30+01:00[Europe/Paris]"
             ZonedDateTime.parse(this)
@@ -112,7 +107,7 @@ fun Duration.toQuantity(): ComparableQuantity<Time> =
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.toDuration(): Duration {
-    val seconds = this.decimalValue(TimeRef.SECOND)
+    val seconds = this.decimalValue(SECOND)
     val secondsTruncated = seconds.toLong()
     val nanoAdjustment = seconds
             .subtract(secondsTruncated.toBigDecimal())
@@ -135,9 +130,9 @@ fun Quantity<Time>.toUnit(temporalUnit: TemporalUnit): ComparableQuantity<Time> 
 
 fun TimeUnit.toUnit(): Unit<Time> =
         when(this) {
-            TimeUnit.NANOSECONDS -> NANOSECOND
-            TimeUnit.MICROSECONDS -> MICROSECOND
-            TimeUnit.MILLISECONDS -> MILLISECOND
+            TimeUnit.NANOSECONDS -> TimeQuantities.NANOSECOND
+            TimeUnit.MICROSECONDS -> TimeQuantities.MICROSECOND
+            TimeUnit.MILLISECONDS -> TimeQuantities.MILLISECOND
             TimeUnit.SECONDS -> Units.SECOND
             TimeUnit.MINUTES -> Units.MINUTE
             TimeUnit.HOURS -> Units.HOUR
@@ -147,9 +142,9 @@ fun TimeUnit.toUnit(): Unit<Time> =
 @Throws(DateTimeException::class)
 fun Unit<Time>.toTimeUnit(): TimeUnit =
         when(this) {
-            NANOSECOND -> TimeUnit.NANOSECONDS
-            MICROSECOND -> TimeUnit.MICROSECONDS
-            MILLISECOND -> TimeUnit.MILLISECONDS
+            TimeQuantities.NANOSECOND -> TimeUnit.NANOSECONDS
+            TimeQuantities.MICROSECOND -> TimeUnit.MICROSECONDS
+            TimeQuantities.MILLISECOND -> TimeUnit.MILLISECONDS
             Units.SECOND -> TimeUnit.SECONDS
             Units.MINUTE -> TimeUnit.MINUTES
             Units.HOUR -> TimeUnit.HOURS
@@ -161,9 +156,9 @@ fun Unit<Time>.toTimeUnit(): TimeUnit =
 @Throws(UnsupportedTemporalTypeException::class)
 fun TemporalUnit.toUnit(): Unit<Time> =
         when(this) {
-            ChronoUnit.NANOS -> NANOSECOND
-            ChronoUnit.MICROS -> MICROSECOND
-            ChronoUnit.MILLIS -> MILLISECOND
+            ChronoUnit.NANOS -> TimeQuantities.NANOSECOND
+            ChronoUnit.MICROS -> TimeQuantities.MICROSECOND
+            ChronoUnit.MILLIS -> TimeQuantities.MILLISECOND
             ChronoUnit.SECONDS -> Units.SECOND
             ChronoUnit.MINUTES -> Units.MINUTE
             ChronoUnit.HOURS -> Units.HOUR
@@ -178,9 +173,9 @@ fun TemporalUnit.toUnit(): Unit<Time> =
 @Throws(UnsupportedTemporalTypeException::class)
 fun Unit<Time>.toTemporalUnit(): TemporalUnit =
         when(this) {
-            NANOSECOND -> ChronoUnit.NANOS
-            MICROSECOND -> ChronoUnit.MICROS
-            MILLISECOND -> ChronoUnit.MILLIS
+            TimeQuantities.NANOSECOND -> ChronoUnit.NANOS
+            TimeQuantities.MICROSECOND -> ChronoUnit.MICROS
+            TimeQuantities.MILLISECOND -> ChronoUnit.MILLIS
             Units.SECOND -> ChronoUnit.SECONDS
             Units.MINUTE -> ChronoUnit.MINUTES
             Units.HOUR -> ChronoUnit.HOURS
@@ -222,7 +217,7 @@ fun Unit<Time>.toTemporalUnit(): TemporalUnit =
  * @param qty the [String] representation of a (relative) duration
  * @return a {@linkComparableQuantity}
  *
- * @see tec.uom.se.format.QuantityFormat.getInstance
+ * @see tech.units.indriya.format.QuantityFormat.getInstance
  * @see java.time.Duration.parse
  * @see org.joda.time.format.ISOPeriodFormat.standard
  */

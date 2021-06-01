@@ -3,18 +3,16 @@ package io.smetweb.sim.dsol
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
-import nl.tudelft.simulation.dsol.experiment.Experiment
-import nl.tudelft.simulation.dsol.experiment.Replication
-import nl.tudelft.simulation.dsol.experiment.Replication.*
-import nl.tudelft.simulation.dsol.experiment.Treatment
+import nl.tudelft.simulation.dsol.experiment.*
+import nl.tudelft.simulation.dsol.experiment.ReplicationInterface.*
 import nl.tudelft.simulation.dsol.model.inputparameters.InputParameterMap
-import nl.tudelft.simulation.dsol.model.outputstatistics.OutputStatistic
-import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
 import nl.tudelft.simulation.dsol.simulators.DESSSimulatorInterface.*
+import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
+import nl.tudelft.simulation.dsol.statistics.StatisticsInterface
 import org.djutils.event.EventInterface
 import org.djutils.event.EventTypeInterface
 import org.djutils.event.TimedEvent
-import tec.uom.se.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
 import java.math.BigDecimal
 import javax.measure.quantity.Time
 
@@ -27,42 +25,49 @@ fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventTypeInterface):
 					END_REPLICATION_EVENT)
 		}
 
+fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.createEmptyModel(
+	emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
+	emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
+	inputParameters: InputParameterMap? = null,
+	outputStatistics: MutableList<StatisticsInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> = mutableListOf(),
+	simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this
+): DsolModel = object: DsolModel {
+	private var streamInformation: StreamInformation = StreamInformation() // wrap external PRNG as DSOL stream?
+	override val statusSource = emitStatus
+	override val timeSource = emitTime
+	override fun constructModel() { /* no-op */ } // trigger model reset event?
+	override fun getSimulator() = simulator
+	override fun getInputParameterMap() = inputParameters
+	override fun getOutputStatistics(): MutableList<StatisticsInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> = outputStatistics
+	override fun getStreamInformation(): StreamInformation = this.streamInformation
+	override fun setStreamInformation(streamInformation: StreamInformation) {
+		this.streamInformation = streamInformation
+	}
+}
+
 /**
  * @return a [DsolModel] [Replication] context (i.e. [Experiment]),
  * based on given some [analyst], some [description] and (required) treatment [treatment]
  */
 fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.createExperiment(
-		treatment: DsolTreatment,
-		analyst: String? = null,
-		description: String? = null,
-		inputParameters: InputParameterMap? = null,
-		outputStatistics: MutableList<OutputStatistic<*>> = mutableListOf(),
-		emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
-		emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
-		model: DsolModel = object: DsolModel {
-			override val statusSource = emitStatus
-			override val timeSource = emitTime
-			override fun getSimulator() = simulator
-			override fun getOutputStatistics(): MutableList<OutputStatistic<*>> = outputStatistics
-			override fun getInputParameterMap() = inputParameters
-			override fun constructModel() { /* no-op */ }
-		},
-		simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this
-) = Experiment<ComparableQuantity<Time>, BigDecimal, DsolTimeRef,
-		DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>>().apply {
-	this.analyst = analyst
+	treatment: DsolTreatment,
+	analyst: String? = null,
+	description: String? = null,
+	inputParameters: InputParameterMap? = null,
+	outputStatistics: MutableList<StatisticsInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> = mutableListOf(),
+	emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
+	emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
+	simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this,
+	model: DsolModel = createEmptyModel(emitStatus, emitTime, inputParameters, outputStatistics, simulator),
+	replication: ReplicationInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = SingleReplication(treatment.name, treatment.startTime, treatment.warmUpPeriod, treatment.runLength)
+) = Experiment(
+	simulator,
+	model,
+	ExperimentRunControl(treatment.name, treatment.startTime, treatment.warmUpPeriod, treatment.runLength, treatment.numberOfReplications)).apply {
 	this.description = description
-	this.treatment = Treatment<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>(
-			this, treatment.name, treatment.startTime, treatment.warmUpPeriod,
-			treatment.runLength, treatment.replicationMode)
-	this.simulator = simulator
-	this.model = model
-	val replication =  // FIXME fails on id value with negative #hashCode()
-			Replication("r", this)
-	this.replications = listOf(replication)
 
 	// reset the scheduler's time and event list
-	simulator.initialize(replication, this.treatment.replicationMode)
+	simulator.initialize(model, replication)
 
 	// initial event to set the name of the simulator's worker thread
 	simulator.scheduleEventAbs(DsolTimeRef.T_ZERO) { Thread.currentThread().name = treatment.name }

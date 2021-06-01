@@ -10,7 +10,7 @@ import nl.tudelft.simulation.dsol.experiment.Experiment
 import nl.tudelft.simulation.dsol.formalisms.eventscheduling.SimEventInterface
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulator
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
-import tec.uom.se.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.Clock
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicReference
 import javax.measure.quantity.Time
 
 /**
- * [DsolTaskScheduler] is a [ManagedTaskScheduler] and Spring [Service] that delegates to
+ * [DsolTaskScheduler] is a [ManagedTaskScheduler] that delegates to
  * a D-SOL [DEVSSimulatorInterface] which operates in [DsolTimeRef]-type time lines
  */
 @Suppress("REDUNDANT_LABEL_WARNING")

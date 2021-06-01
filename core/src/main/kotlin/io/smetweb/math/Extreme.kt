@@ -70,14 +70,18 @@ data class Extreme<T: Comparable<*>>(
                 that.boundary.limitCompare
         if (that.isInfinite())
             return that.boundary.limitCompare
-        val valueCmp: Compare = Compare.of(this.value!!, that.value!!)
+        val valueCmp: Compare = Compare.of(
+                this.value ?: error("$this infinite?"),
+                that.value ?: error("$that infinite?"))
         if (valueCmp !== Compare.EQUIVALENT)
             return valueCmp
 
         // equivalent values, check inclusiveness
-        if (this.inclusive!! && !that.inclusive!!)
+        val thisInclusive = this.inclusive ?: error("$this infinite?")
+        val thatInclusive = that.inclusive ?: error("$that infinite?")
+        if (thisInclusive && !thatInclusive)
             return this.boundary.limitCompare
-        return if (!this.inclusive && that.inclusive!!)
+        return if (!this.inclusive && thatInclusive)
             that.boundary.limitCompare
         else
             Compare.EQUIVALENT

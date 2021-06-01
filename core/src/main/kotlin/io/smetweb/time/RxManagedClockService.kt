@@ -134,7 +134,7 @@ interface RxManagedClockService: ManagedClockService {
 				this.schedulerService.durationUntil(pendingExecutionTime()) // relative to current (virtual) time
 						.longValue(unit) // convert to specified time unit and truncate to 64-bit (long) value
 
-		private fun pendingExecutionTime(): Date = this.nextExecutionTime.get()!!
+		private fun pendingExecutionTime(): Date = this.nextExecutionTime.get() ?: error("Clock not initialized?")
 
 		override fun compareTo(other: Delayed): Int =
 				this.pendingExecutionTime().compareTo((other as RxScheduledFuture<*>).pendingExecutionTime())

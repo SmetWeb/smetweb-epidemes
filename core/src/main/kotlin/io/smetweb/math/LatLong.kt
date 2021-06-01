@@ -3,8 +3,8 @@ package io.smetweb.math
 import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath.*
 import si.uom.NonSI
-import tec.uom.se.ComparableQuantity
-import tec.uom.se.unit.Units
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.unit.Units
 import javax.measure.Quantity
 import javax.measure.Unit
 import javax.measure.quantity.Angle
@@ -32,7 +32,7 @@ data class LatLong(
                                 pow(sin(abs(lon1.subtract(lon2)).divide(TWO)), TWO))))))
                 .precision(minOf(lat1.precision(), lon1.precision(),
                         lat2.precision(), lon2.precision()))
-        // NOTE avoid using (standard) ComparableQuantity#to(Unit) !!
+        // NOTE avoid using (standard) ComparableQuantity#to(Unit) !
         return result.toDecimal().toQuantity(Units.RADIAN).toUnit(unit)
     }
 }

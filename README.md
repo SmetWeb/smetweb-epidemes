@@ -65,69 +65,69 @@ This Smet WEB-adaptation includes:
 The [COVIDsim](https://github.com/lvanhee/COVID-sim) NetLogo scenarios developed by [ASSOCC](https://simassocc.org/) were recently launched and continuously updated to model behavioral aspects of the COVID-19 pandemic and related social distancing policy changes.
 
 #### FluTE
-The [*FluTE* open-source simulator](https://github.com/dlchao/FluTE) developed by [Chao et al. (2010)][Chao:2010:pcbi] is actively maintained and incorporates daily routines and vaccination interventions for various household compositions congruent with [US census data of 2010](http://www2.census.gov/census_2000/datasets/PUMS/OnePercent/). *FluTE* seems optimized for certain susceptible-exposed-infectious-recovered (SEIR) compartmental models involving respiratory virus transmission and associated treatment procedures.
+The [*FluTE* open-source simulator](https://github.com/dlchao/FluTE) developed by [Chao *et al.* (2010)][Chao:2010:pcbi] is actively maintained and incorporates daily routines and vaccination interventions for various household compositions congruent with [US census data of 2010](http://www2.census.gov/census_2000/datasets/PUMS/OnePercent/). *FluTE* seems optimized for certain susceptible-exposed-infectious-recovered (SEIR) compartmental models involving respiratory virus transmission and associated treatment procedures.
 
 #### FRED
-The [*FRED* open-source simulator](https://github.com/PublicHealthDynamicsLab/FRED) by [Grefenstette][Grefenstette:2013:bmcph] generates synthetic aging populations informed by regional census data at various levels, from national (mortality rates) and state (birth rates) levels down to household (residence) geographical coordinates. *FRED* has various available extensions, including [measles scenarios](http://fred.publichealth.pitt.edu/measles/), the [HERMES supply chain analysis tool](http://hermes.psc.edu/), and the [GAIA visualizer](http://gaia.psc.edu/). *FRED* has been used in a number of studies, including [Kumar et al. (2015)][Kumar:2015:pmcph]. 
+The [*FRED* open-source simulator](https://github.com/PublicHealthDynamicsLab/FRED) by [Grefenstette *et al.* (2013)][Grefenstette:2013:bmcph] generates synthetic aging populations informed by regional census data at various levels, from national (mortality rates) and state (birth rates) levels down to household (residence) geographical coordinates. *FRED* has various available extensions, including [measles scenarios](http://fred.publichealth.pitt.edu/measles/), the [HERMES supply chain analysis tool](http://hermes.psc.edu/), and the [GAIA visualizer](http://gaia.psc.edu/). *FRED* has been used in a number of studies, including [Kumar *et al.* (2015)][Kumar:2015:pmcph]. 
 
 #### Indismo
-[*Indismo*](https://bitbucket.org/indismo/indismo) by [Willem et al. (2015)][Willem:2015:bmcbi] was used in comparison with the discrete-time *FluTE* and *FRED* simulators for two US-situated influenza scenarios, which resulted in several ways to improve upon their computational performance. 
+[*Indismo*](https://bitbucket.org/indismo/indismo) by [Willem *et al.* (2015)][Willem:2015:bmcbi] was used in comparison with the discrete-time *FluTE* and *FRED* simulators for two US-situated influenza scenarios, which resulted in several ways to improve upon their computational performance. 
 
 ### Closed Source
-Developed at the Los Alamos National Laboratory, *EpiSims* by [Eubank et al. (2004)][Eubank:2004:nature] is an early synthetic population used for smallpox studies, which was later extended for influenza scenarios, e.g., [Stroud et al. (2007)][Stroud:2007:jasss], [Halloran et al. (2008)][Halloran:2008:pnas] [Valle et al. (2013)][Valle:2013:ch] and [Bryan et al. (2015)][Bryan:2015:vast].
+Developed at the Los Alamos National Laboratory, *EpiSims* by [Eubank *et al.* (2004)][Eubank:2004:nature] is an early synthetic population used for smallpox studies, which was later extended for influenza scenarios, e.g., [Stroud *et al.* (2007)][Stroud:2007:jasss], [Halloran *et al.* (2008)][Halloran:2008:pnas] [Valle *et al.* (2013)][Valle:2013:ch] and [Bryan *et al.* (2015)][Bryan:2015:vast].
 
-Comparable synthetic populations include a virtual society of Poland by [Rakowski et al. (2010)][Rakowski:2010:jasss], the *Global-Scale Agent Model (GSAM)* by [Epstein et al. (2009)][Epstein:2009:nature] and [Parker et al. (2011)][Parker:2011:tomacs], [*GLEaMviz*](http://www.gleamviz.org/simulator/) by [Broeck et al. (2011)][Broeck:2011:bmcid], [*4Flu*](https://www.4flu.net/) by [Eichner et al. (2014)][Eichner:2014:bmcid], and *POHEM* by [Hennessy et al. (2015)][Hennessy:2015:phm]. 
+Comparable synthetic populations include a virtual society of Poland by [Rakowski *et al.* (2010)][Rakowski:2010:jasss], the *Global-Scale Agent Model (GSAM)* by [Epstein *et al.* (2009)][Epstein:2009:nature] and [Parker *et al.* (2011)][Parker:2011:tomacs], [*GLEaMviz*](http://www.gleamviz.org/simulator/) by [Broeck *et al.* (2011)][Broeck:2011:bmcid], [*4Flu*](https://www.4flu.net/) by [Eichner *et al.* (2014)][Eichner:2014:bmcid], and *POHEM* by [Hennessy *et al.* (2015)][Hennessy:2015:phm]. 
 
-*Indemics* by [Bisset et al. (2014)][Bisset:2014:tomacs] is another high-performance synthetic population that incorporates the *EpiFast* algorithm developed by [Bisset et al. (2009)][Bisset:2009:ics], an improvement of the *EpiSimdemics* algorithm by [Barrett et al. (2008)][Barrett:2008:eea]. *Indemics* has also been applied to various contagion scenarios besides disease, for instance social or financial behaviors. *InterSim* by [Kuhlman et al. (2011)][Kuhlman:2011:wsc] aimed to build upon *Indemics* as a graph-based generalized extension. 
+*Indemics* by [Bisset *et al.* (2014)][Bisset:2014:tomacs] is another high-performance synthetic population that incorporates the *EpiFast* algorithm developed by [Bisset *et al.* (2009)][Bisset:2009:ics], an improvement of the *EpiSimdemics* algorithm by [Barrett *et al.* (2008)][Barrett:2008:eea]. *Indemics* has also been applied to various contagion scenarios besides disease, for instance social or financial behaviors. *InterSim* by [Kuhlman *et al.* (2011)][Kuhlman:2011:wsc] aimed to build upon *Indemics* as a graph-based generalized extension. 
 
-*Artificial City*, an influenza scenario by [Zhang et al. (2016)][Zhang:2016:jasss], models the Beijing population of 19.6 million persons and has several novel features, including weekly mobility patterns in continuous time based on individual social behaviors and a complete public transportation component. Simulated individuals can follow over one hundred different social behavior scripts that were informed by highly detailed census data on citizen movement and behaviors. Several of its algorithms described by [Zhang (2016)][Zhang:2016:phd], including for instance its mobility dynamics, were adapted and implemented for **epidemes**.
+*Artificial City*, an influenza scenario by [Zhang *et al.* (2016)][Zhang:2016:jasss], models the Beijing population of 19.6 million persons and has several novel features, including weekly mobility patterns in continuous time based on individual social behaviors and a complete public transportation component. Simulated individuals can follow over one hundred different social behavior scripts that were informed by highly detailed census data on citizen movement and behaviors. Several of its algorithms described by [Zhang (2016)][Zhang:2016:phd], including for instance its mobility dynamics, were adapted and implemented for **epidemes**.
 
 ## Synthethic Population
 
 ![Epidemes Ecosystem Organisation Construction Diagram](./doc/img/epidemes-ecosystem-ocd.png)
 
-### Data sources
-[Google Sheet](https://docs.google.com/spreadsheets/d/1S71E2j9bX46Rj6UssbKZo9UQR3O1jZrluWy3uCzz0NE/edit#gid=638032539)
+### Modular Model
+As noted in this [(draft) report of ZonMW project 522002008](https://github.com/krevelen/epidemes/releases/download/v0.2.0/zonmw-522002008-report-draft.pdf), the epidemes ecosystem consists of several "modules" (actor kinds and transaction kinds, as per the [DEMO methodology](https://en.wikipedia.org/wiki/Design_%26_Engineering_Methodology_for_Organizations) common in [enterprise engineering](http://www.ee-institute.org/en)) to facilitate customization of your synthetic population.
 
-### Visualization
-e.g. https://www.codefor.nl/coronamap-nl/ (source [here](https://github.com/codefornl/coronamap-nl))
+#### Deme Entity
 
-### Modules
-As noted in this [(draft) report of ZonMW project 522002008](https://github.com/krevelen/epidemes/releases/download/v0.2.0/zonmw-522002008-report-draft.pdf), the epidemes ecosystem consists of several separate "modules" (actor kinds and transaction kinds, as per the [DEMO methodology](https://en.wikipedia.org/wiki/Design_%26_Engineering_Methodology_for_Organizations) common in [enterprise engineering](http://www.ee-institute.org/en)) to facilitate customization of your synthetic population.
+:
 
-#### Person
+#### Person Entities
 Representing a citizen of the synthetic population, each `Person` (O01) is a composite actor organised into various actor roles that describe his/her responsibility for executing several results, including:
 
-|Actor| Executor Role  | Tx  | Result Kind     | Description |
-| --- | -------------- | --- | --------------- | ----------- |
-| A10 | `Participater` | T10 | `Participation` | R10 Person participates in some gathering
-| A11 | `Infector`     | T11 | `Infection`     | R11 Person is infected by some pathogen
-| A12 | `Disruptor`    | T12 | `Disruption`    | R12 Person migrates, un/couples, expands, etc.
-| A13 | `Expresser`    | T13 | `Expression`    | R13 Person expresses their current opinion
-| A14 | `Impresser`    | T14 | `Impression`    | R14 Person is impressed by another opinion
-| A15 | `Director`     | T15 | `Redirection`   | R15 Person adjusts their current routine
+| Executor Role      | Transaction Kind    | Result Description |
+| ------------------ | ------------------- | ------------------ |
+| A10 `Participater` | T10 `Participation` | Person participates in some gathering
+| A11 `Infector`     | T11 `Infection`     | Person is infected with some pathogen during `Contact` at some `Site`
+| A12 `Disruptor`    | T12 `Disruption`    | Person migrates, un/couples, expands family, etc.
+| A13 `Expresser`    | T13 `Expression`    | Person expresses their current opinion to another `Person`
+| A14 `Impresser`    | T14 `Impression`    | Person is impressed by another `Person`'s opinion
+| A15 `Director`     | T15 `Redirection`   | Person adjusts their current routine
 
-Here the `Director` role (A15) can _self-initiate_ its own `Redirection` results, thus rendering the `Person` a **proactive** agent (as per terminology from [agent-based or individual-based modeling](https://en.wikipedia.org/wiki/Agent-based_model) and [collective intelligence](https://www.cs.vu.nl/~schut/pubs/Schut/2010.pdf) research fields). 
+The `Director` role (A15) can _self-initiate_ its own `Redirection` results, thus rendering the `Person` a **proactive** agent (as per terminology from [agent-based or individual-based modeling](https://en.wikipedia.org/wiki/Agent-based_model) and [complex adaptive systems](https://en.wikipedia.org/wiki/Complex_adaptive_system) research fields). 
 
 This organisation describes how various events or coordination facts between actors can occur.
-For instance, upon invitation (T10/rq) for some `Gathering`, the `Participater` role of the `Person` actor decides whether to evade (T10/dc) or to attend (T10/st), and thereby affect the `Occupancy` of its venue (`Site`).
+For instance, upon invitation (T10/rq) for some meet (`Convention`), the `Participater` role of the `Person` actor will decide whether this individual will skip (T10/dc) or attend (T10/st), which in turn would affect the `Occupancy` at the venue (`Site`).
                                                     
-#### Site
+#### Site Entities
 
 :
 
-#### Deme
+#### Adviser Entities
 
 :
 
-#### Adviser
-
-:
-
-#### Immunizer
+#### Immunizer Entities
 
 :
 
 #### Society
 
 :
+
+### Data sources
+[Google Sheet](https://docs.google.com/spreadsheets/d/1S71E2j9bX46Rj6UssbKZo9UQR3O1jZrluWy3uCzz0NE/edit#gid=638032539)
+
+### Visualization
+e.g. https://www.codefor.nl/coronamap-nl/ (source [here](https://github.com/codefornl/coronamap-nl))

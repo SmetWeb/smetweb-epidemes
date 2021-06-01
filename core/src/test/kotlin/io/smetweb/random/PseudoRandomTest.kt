@@ -21,11 +21,11 @@ class PseudoRandomTest {
 		val n = 1_000_000
 		mapOf(
 				"JDK" to Function<Long, PseudoRandom> { PseudoRandomJava(it) },
-				"ECJ MT" to Function<Long, PseudoRandom> { PseudoRandomEcj(it) },
-				"Commons MT" to Function<Long, PseudoRandom> { PseudoRandomCommons(it) },
-				"Colt MT" to Function<Long, PseudoRandom> { PseudoRandomColt(it) },
-				"DSOL MT" to Function<Long, PseudoRandom> { PseudoRandomDsol(it) },
-				"Kotlin" to Function<Long, PseudoRandom> { PseudoRandomKotlin(it) })
+				"ECJ MT" to Function { PseudoRandomEcj(it) },
+				"Commons MT" to Function { PseudoRandomCommons(it) },
+				"Colt MT" to Function { PseudoRandomColt(it) },
+				"DSOL MT" to Function { PseudoRandomDsol(it) },
+				"Kotlin" to Function { PseudoRandomKotlin(it) })
 				.forEach { (name, init) ->
 					val rng1: PseudoRandom = init.apply(seed)
 					val rng2: PseudoRandom = init.apply(seed)

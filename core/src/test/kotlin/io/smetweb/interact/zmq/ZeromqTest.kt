@@ -1,12 +1,11 @@
 package io.smetweb.interact.zmq
 
-import io.smetweb.sim.dsol.REPORT_INTERVAL
 import org.awaitility.kotlin.await
 import org.djutils.logger.CategoryLogger
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
 import org.zeromq.SocketType
 import org.zeromq.ZMQ
 import java.time.Duration
@@ -16,7 +15,7 @@ class ZeromqTest {
     private lateinit var context: ZMQ.Context
     private lateinit var responder: ZMQ.Socket
 
-    @BeforeAll
+    @BeforeEach
     fun `setup zmq server`() {
         context = ZMQ.context(1)
 
@@ -42,6 +41,7 @@ class ZeromqTest {
         }
     }
 
+    @Disabled
     @Test
     fun `client receives response to query`() {
         val dt = Duration.ofMillis(1000)
@@ -52,7 +52,7 @@ class ZeromqTest {
 
     }
 
-    @AfterAll
+    @AfterEach
     fun `close server`() {
         context.term()
         responder.close()

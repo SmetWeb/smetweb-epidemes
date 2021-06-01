@@ -246,6 +246,6 @@ enum class FactKind
 	}
 
 	fun isValidDefaultResponse(factType: FactKind, roleKind: RoleKind, proceed: Boolean) =
-			isValidResponseKind(factType.defaultResponseKind(roleKind, proceed)!!)
+			isValidResponseKind(factType.defaultResponseKind(roleKind, proceed) ?: error("Response undefined?"))
 
 }

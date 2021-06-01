@@ -2,14 +2,14 @@ package io.smetweb.sim.dsol
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
-import io.smetweb.math.UNIT_FORMAT
-import io.smetweb.math.VALUE_UNIT_SEPARATOR
-import io.smetweb.math.toDecimal
-import io.smetweb.math.toQuantity
+import io.smetweb.math.*
+import io.smetweb.time.MILLISECOND
 import io.smetweb.time.TimeRef
 import io.smetweb.time.toQuantity
 import nl.tudelft.simulation.dsol.simtime.SimTime
-import tec.uom.se.ComparableQuantity
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.function.Calculus
+import tech.units.indriya.quantity.Quantities
 import java.math.BigDecimal
 import javax.measure.Quantity
 import javax.measure.Unit
@@ -20,7 +20,7 @@ import java.time.temporal.TemporalUnit
 import java.util.*
 import java.util.concurrent.TimeUnit
 
-/** [DsolTimeRef] models virtual/simulated time, extending D-SOL's [SimTime] */
+/** [DsolTimeRef] models (immutable) virtual/simulated time, extending (but fixating) D-SOL's [SimTime] */
 data class DsolTimeRef(
 		private var absoluteTime: ComparableQuantity<Time>,
 		override val value: ComparableQuantity<Time> = absoluteTime
@@ -34,7 +34,7 @@ data class DsolTimeRef(
 			this(value, TimeRef.BASE_UNIT)
 
 	private constructor(time: List<String>): this(
-			TimeRef.TIME_QUANTITY_FACTORY.create(
+			Quantities.getQuantity(
 					BigDecimal(time[0]),
 					when(time.size){
 						1 -> TimeRef.BASE_UNIT
@@ -42,6 +42,11 @@ data class DsolTimeRef(
 						else -> throw IllegalArgumentException("Unable to parse model quantity from: $time")
 					}
 			))
+
+	init {
+		// TODO move elsewhere?
+		Calculus.setCurrentNumberSystem(NUMBER_SYSTEM)
+	}
 
 	@JsonCreator
 	constructor(time: String): this(time.trim().split(VALUE_UNIT_SEPARATOR))
@@ -59,7 +64,7 @@ data class DsolTimeRef(
 	override fun get() = absoluteTime
 
 	@JsonValue
-	override fun toString() = get().toString()
+	override fun toString(): String = get().toString()
 
 	override fun equals(other: Any?): Boolean{
 		if (this === other) return true
@@ -126,7 +131,7 @@ data class DsolTimeRef(
 
 		@JvmStatic
 		fun of(value: Date, epoch: Date = Date.from(Instant.EPOCH)): DsolTimeRef =
-                of(value.time - epoch.time, TimeRef.MILLISECOND)
+                of(value.time - epoch.time, MILLISECOND)
 
 		@JvmStatic
 		fun of(value: Instant, epoch: Instant = Instant.EPOCH): DsolTimeRef =

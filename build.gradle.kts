@@ -19,7 +19,6 @@ buildscript {
 
 		// see https://gradle.org/kotlin/ and https://kotlinlang.org/docs/reference/using-gradle.html
 		classpath(kotlin("gradle-plugin", version = kotlinVersion))
-//		"classpath"(group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version = kotlinVersion)
 
 		// see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
 		classpath(group = "org.springframework.boot", name = "spring-boot-gradle-plugin", version = springBootVersion)
@@ -48,10 +47,6 @@ plugins {
 	// TODO fix logging and rule violation issue(s)
 //	val spotBugsVersion: String by System.getProperties()
 //	id("com.github.spotbugs") version spotBugsVersion apply false
-}
-
-val lastTask = Action<Task> {
-	println("I'm ${this.project.name}")
 }
 
 // see https://docs.gradle.org/current/userguide/multi_project_builds.html
@@ -95,10 +90,16 @@ allprojects {
 
 	tasks.withType<Test> {
 		useJUnitPlatform() // see https://stackoverflow.com/a/50326943
+		// see http://logging.apache.org/log4j/2.x/manual/layouts.html#enable-jansi
+		systemProperty("log4j.skipJansi", "false")
 	}
 
-	tasks.register("hello") {
-		doLast(lastTask)
+	configurations {
+		all {
+			exclude(module ="spring-boot-starter-logging")
+			exclude(module = "junit")
+			exclude(group = "org.junit.vintage")
+		}
 	}
 
 // 'kotlin-jvm' plugin config
@@ -108,15 +109,8 @@ allprojects {
 			suppressWarnings = true
 			jvmTarget = "1.8"
 			freeCompilerArgs = listOf(
-					"-Xjsr305=strict"
+					"-Xjsr305=strict" // apply Java @NonNullApi/@Nullable annotations in Kotlin
 			)
 		}
 	}
 }
-
-//dependencies {
-//	// Make the root project archives configuration depend on every sub-project
-//	subprojects.forEach {
-//		archives(it)
-//	}
-//}

@@ -55,15 +55,17 @@ data class UuidResultExchangeEmbedded (
 			executorRef = executorRefEntity,
 			initiatorRef = initiatorRefEntity)
 
-	fun toSimFactContext(executorRef: UuidNameRef = this.executorRef!!.toUuidNameRef()) =
+	fun toSimFactContext(
+			executorRef: UuidNameRef = this.executorRef?.toUuidNameRef()
+					?: error("Attribute not loaded")) =
 			UuidResultExchange(
-					id = UuidRef(id!!),
-					resultKind = resultKind!!.toResultKind(),
+					id = UuidRef(id ?: error("Attribute not loaded")),
+					resultKind = resultKind?.toResultKind() ?: error("Attribute not loaded"),
 					executorRef = executorRef,
 					initiatorRef = if (this.executorRef == this.initiatorRef)
 						executorRef
 					else
-						initiatorRef!!.toUuidNameRef())
+						initiatorRef?.toUuidNameRef() ?: error("Attribute not loaded"))
 
 	/** for [Table] column constraint specification */
 	companion object {

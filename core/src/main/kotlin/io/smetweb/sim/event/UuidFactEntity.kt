@@ -105,13 +105,13 @@ data class UuidFactEntity(
 					resultKindFetcher = resultKindFetcher,
 					nameRefFetcher = nameRefFetcher),
 			creatorRefEntity: UuidNameRefEntity = if(fact.creatorRef() == fact.exchange.initiatorRef)
-				contextEmbedded.initiatorRef!!
+				contextEmbedded.initiatorRef ?: error("Attribute not loaded")
 			else
-				contextEmbedded.executorRef!!,
+				contextEmbedded.executorRef ?: error("Attribute not loaded"),
 			responderRefEntity: UuidNameRefEntity = if(fact.responderRef() == fact.exchange.initiatorRef)
-				contextEmbedded.initiatorRef!!
+				contextEmbedded.initiatorRef ?: error("Attribute not loaded")
 			else
-				contextEmbedded.executorRef!!,
+				contextEmbedded.executorRef ?: error("Attribute not loaded"),
 			links: Collection<UuidFactLinkEntity> = fact.links.map(factLinkFetcher),
 			occur: TimeRefEmbedded = TimeRefEmbedded(fact.occur, epoch),
 			details: TreeNode? = OBJECT_MAPPER.valueToTree(fact.details)
@@ -127,11 +127,11 @@ data class UuidFactEntity(
 			details = details)
 
 	fun toSimFactEvent(): UuidFact = UuidFact(
-            id = UuidRef(this.id!!),
-            kind = this.kind!!,
-            exchange = this.exchange!!.toSimFactContext(),
-            ordinal = this.ordinal!!.let(::IntRef),
-            occur = this.occur!!.exact!!.let(::DsolTimeRef),
+            id = UuidRef(this.id ?: error("Attribute not loaded")),
+            kind = this.kind ?: error("Attribute not loaded"),
+            exchange = this.exchange?.toSimFactContext() ?: error("Attribute not loaded"),
+            ordinal = this.ordinal?.let(::IntRef) ?: error("Attribute not loaded"),
+            occur = this.occur?.exact?.let(::DsolTimeRef) ?: error("Attribute not loaded"),
             links = this.linkRefs.map(UuidFactLinkEntity::toFactLink),
             details = this.details
                     ?.let { OBJECT_MAPPER.treeToValue<Map<in IdRef<*, *>, Ref<*>>>(it) }

@@ -16,8 +16,10 @@ dependencies {
 	// `project` configuration bean reads values from file `gradle.properties`
 	val persistenceApiVersion: String by project
 	val concurrentApiVersion: String by project
-	val uomVersion: String by project
+	val ucumVersion: String by project
+	val uomLibVersion: String by project
 	val math3Version: String by project
+	val coltVersion: String by project
 	val ujmpVersion: String by project
 	val ejmlVersion: String by project
 	val rxJavaVersion: String by project
@@ -29,19 +31,27 @@ dependencies {
 	val jeromqVersion: String by project
 	val hibernateVersion: String by project
 	val h2Version: String by project
+	val indriyaVersion: String by project
 
 	api(kotlin("stdlib-jdk8"))
 	api(kotlin("reflect"))
 
-	api(group = "ch.qos.logback", name = "logback-classic")
+//	api(group = "ch.qos.logback", name = "logback-classic")
+	api(group = "org.apache.logging.log4j", name = "log4j", version = "2.13.3")
 	api(group = "org.slf4j", name = "jul-to-slf4j")
-	api(group = "org.slf4j", name = "log4j-over-slf4j")
+//	api(group = "org.slf4j", name = "log4j-over-slf4j")
 
 	// units of measurement (JSR-363)
-	api(group = "systems.uom", name = "systems-common-java8", version = uomVersion)
+	api(group = "systems.uom", name = "systems-ucum", version = ucumVersion)
+	api(group = "tech.uom.lib", name = "uom-lib-jackson", version = uomLibVersion)
+
+	// units of measurement 2.0 (JSR-385, extending JSR-363)
+	api(group = "tech.units", name = "indriya", version = indriyaVersion)
 
 	// commons-math3, including RNGs, distributions, algorithms, etc.
-	compileOnly(group = "org.apache.commons", name = "commons-math3", version = math3Version)
+	testImplementation(group = "org.apache.commons", name = "commons-math3", version = math3Version)
+
+	api(group = "colt", name = "colt", version = coltVersion)
 
 	// Efficient Java Matrix Library for linear algebra on real/complex/dense/sparse matrices
 	compileOnly(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
@@ -83,16 +93,20 @@ dependencies {
 	// Jason agentspeak, see https://github.com/jason-lang/jason (latest not yet in mvn repo)
 	compileOnly(group = "net.sf.jason", name = "jason", version = "2.3")
 
-	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
+//	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
+	compileOnly(group = "org.springframework.boot", name = "spring-boot") // only requiring @ConfigurationProperties
+	api(group = "org.springframework.data", name = "spring-data-jpa")
 	kapt(group = "org.hibernate", name = "hibernate-jpamodelgen", version = hibernateVersion)
 	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")
 
 	// test
+	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(group = "org.junit.vintage")
+		exclude(group = "ch.qos.logback", module = "logback-classic")
 	}
-	testImplementation("com.h2database:h2:$h2Version")
+	testImplementation(group = "com.h2database", name = "h2", version = h2Version)
 	testImplementation(group = "org.awaitility", name = "awaitility-kotlin", version = "4.0.2")
 
 	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")

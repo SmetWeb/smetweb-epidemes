@@ -36,7 +36,7 @@ interface ManagedTaskScheduler: RxManagedClockService, TaskScheduler {
 			RxScheduledFuture(
 					schedulerService = RxSchedulerService@this,
 					command = task::run,
-					startTime = trigger.nextExecutionTime()!!,
+					startTime = trigger.nextExecutionTime() ?: error("Trigger ended?"),
 					repeater = { trigger.nextExecutionTime() })
 
 	override fun scheduleAtFixedRate(task: Runnable, periodMillis: Long): RxScheduledFuture<*> =

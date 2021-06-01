@@ -65,7 +65,7 @@ data class UuidResultKindEntity(
 			initiatorKinds = initiatorKindEntities)
 
 	fun toResultKind(): ResultKind = ResultKind.of(
-			name = name!!.toUuidNameRef(),
-			executorKind = executorKind!!.toActorKind(),
+			name = name?.toUuidNameRef() ?: error("entity not loaded?"),
+			executorKind = executorKind?.toActorKind() ?: error("entity not loaded?"),
 			initiatorKinds = initiatorKinds.map { it.toActorKind() })
 }

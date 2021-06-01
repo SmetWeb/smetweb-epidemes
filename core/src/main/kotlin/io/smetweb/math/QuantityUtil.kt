@@ -1,26 +1,33 @@
 package io.smetweb.math
 
 import si.uom.NonSI
-import tec.uom.se.AbstractUnit
-import tec.uom.se.ComparableQuantity
-import tec.uom.se.format.FormatBehavior
-import tec.uom.se.format.QuantityFormat
-import tec.uom.se.quantity.Quantities
-import tec.uom.se.unit.Units
+import tech.units.indriya.AbstractUnit
+import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.format.FormatBehavior
+import tech.units.indriya.format.NumberDelimiterQuantityFormat
+import tech.units.indriya.function.DefaultNumberSystem
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.ParsePosition
 import java.util.Comparator
 import javax.measure.Quantity
 import javax.measure.Unit
-import javax.measure.format.ParserException
+import javax.measure.format.MeasurementParseException
 import javax.measure.format.UnitFormat
 import javax.measure.quantity.Dimensionless
 import javax.measure.spi.ServiceProvider
 
-val UNIT_FORMAT = ServiceProvider.current().unitFormatService.unitFormat!!
+val UNIT_FORMAT: UnitFormat = ServiceProvider.current().formatService.unitFormat
 
-val VALUE_UNIT_SEPARATOR = ' '
+// provides tech.units.indriya.spi.NumberSystem with
+//    	tech.units.indriya.function.DefaultNumberSystem;
+val NUMBER_SYSTEM: DefaultNumberSystem = object: DefaultNumberSystem() {
+    override fun narrow(number: Number): Number = number // disable narrowing, keep number type intact
+}
+
+const val VALUE_UNIT_SEPARATOR = ' '
 
 val WHITESPACE_REGEX = "\\s+".toRegex()
 
@@ -67,9 +74,9 @@ fun <Q : Quantity<Q>> Quantity<Q>.toUnit(unit: Unit<Q>): ComparableQuantity<Q> =
             throw ArithmeticException("Incompatible ${this.unit} vs. $unit")
         }
         // special cases
-        else if(this.unit === Units.RADIAN && (unit == NonSI.DEGREE_ANGLE || unit === Units.DEGREE_ANGLE)) {
+        else if(this.unit === Units.RADIAN && unit == NonSI.DEGREE_ANGLE) {
             this.value.toDegrees().toQuantity(unit)
-        } else if(unit === Units.RADIAN && (this.unit == NonSI.DEGREE_ANGLE || this.unit === Units.DEGREE_ANGLE)) {
+        } else if(unit === Units.RADIAN && this.unit == NonSI.DEGREE_ANGLE) {
             @Suppress("UNCHECKED_CAST")
             this.value.toRadians().toQuantity(unit) as ComparableQuantity<Q>
         }
@@ -79,13 +86,14 @@ fun <Q : Quantity<Q>> Quantity<Q>.toUnit(unit: Unit<Q>): ComparableQuantity<Q> =
         }
 
 /** String, etc. */
-fun <Q: Quantity<Q>> CharSequence.parseQuantity(quantity: Class<Q>) =
-        Quantities.getQuantity(this).asType(quantity)!!
+fun <Q: Quantity<Q>> CharSequence.parseQuantity(quantity: Class<Q>): ComparableQuantity<Q> =
+        Quantities.getQuantity(this).asType(quantity) as ComparableQuantity<Q>
 
 fun CharSequence.parseQuantity(): ComparableQuantity<*> =
     try {
-        QuantityFormat.getInstance(FormatBehavior.LOCALE_NEUTRAL).parse(this, ParsePosition(0))
-    } catch (e: ParserException) {
+        NumberDelimiterQuantityFormat.getInstance(FormatBehavior.LOCALE_NEUTRAL)
+                .parse(this, ParsePosition(0)) as ComparableQuantity<*>
+    } catch (e: MeasurementParseException) {
         throw IllegalArgumentException("Could not parse '${e.parsedString}'", e)
     }
 
@@ -102,9 +110,9 @@ fun <Q: Quantity<Q>, R: Quantity<R>> CharSequence.parseQuantity(unitFormat: Unit
         replaceWith = ReplaceWith("ParserException.getMessage"))
 fun parsedStringOrMessage(e: Throwable): String? =
         when (e) {
-            is ParserException -> e.parsedString
-            else -> if (e.cause is ParserException)
-                (e.cause as ParserException).parsedString
+            is MeasurementParseException -> e.parsedString
+            else -> if (e.cause is MeasurementParseException)
+                (e.cause as MeasurementParseException).parsedString
             else
                 e.message
             }
@@ -156,7 +164,7 @@ fun <Q: Quantity<Q>> Quantity<Q>.powValue(exponent: Number): Number =
  * [ArithmeticException] due to non-terminating decimal expansion
  *
  * @see Quantity.inverse
- * @see tec.uom.se.quantity.DecimalQuantity
+ * @see tech.units.indriya.quantity.DecimalQuantity
  */
 @Suppress("UNCHECKED_CAST")
 fun <Q: Quantity<Q>, R: Quantity<R>> Quantity<Q>.inverse(): ComparableQuantity<R> =
@@ -271,10 +279,10 @@ fun <Q: Quantity<Q>> Quantity<Q>.doubleValue(unit: Unit<Q>): Double =
         this.toUnit(unit).doubleValue()
 
 fun <Q: Quantity<Q>> minOf(vararg quantities: Quantity<Q>): ComparableQuantity<Q> =
-        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())!!
+        quantities.map(Quantity<Q>::toQuantity).minWithOrNull(Comparator.naturalOrder()) ?: error("Empty argument?")
 
 fun <Q: Quantity<Q>> maxOf(vararg quantities: Quantity<Q>): ComparableQuantity<Q> =
-        quantities.map(Quantity<Q>::toQuantity).minWith(Comparator.naturalOrder())!!
+        quantities.map(Quantity<Q>::toQuantity).minWithOrNull(Comparator.naturalOrder()) ?: error("Empty argument?")
 
 fun <Q: Quantity<Q>> Quantity<Q>.approximates(that: Quantity<Q>, precision: Int): Boolean =
         this.value.scale(precision - 1).compareTo(that.toUnit(this.unit).value.scale(precision - 1)) == 0

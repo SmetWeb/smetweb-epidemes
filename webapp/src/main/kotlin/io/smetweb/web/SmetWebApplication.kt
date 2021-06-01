@@ -2,36 +2,40 @@ package io.smetweb.web
 
 import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
-import org.springframework.boot.Banner
+import io.vertx.core.Verticle
+import io.vertx.reactivex.core.RxHelper
+import io.vertx.reactivex.core.Vertx
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
-import org.springframework.boot.builder.SpringApplicationBuilder
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.boot.context.properties.EnableConfigurationProperties
-import org.springframework.boot.runApplication
-import org.springframework.boot.web.servlet.support.SpringBootServletInitializer
 import org.springframework.context.annotation.AdviceMode
 import org.springframework.context.event.ContextClosedEvent
 import org.springframework.context.event.EventListener
 import org.springframework.scheduling.annotation.EnableScheduling
 import org.springframework.transaction.annotation.EnableTransactionManagement
+import org.springframework.web.reactive.config.EnableWebFlux
+import javax.annotation.PostConstruct
 
+// TODO: replace Spring-boot by Quarkus (faster due to compile-time indexing)?
 @SpringBootApplication(scanBasePackages = ["io.smetweb"])
-@EntityScan(basePackages = ["io.smetweb.uuid", "io.smetweb.time", "io.smetweb.sim.event"])
-@EnableConfigurationProperties(ScenarioConfig::class)
-@EnableScheduling
+@EnableConfigurationProperties(ScenarioConfig::class, SmetWebConfig::class)
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
-class SmetWebApplication : SpringBootServletInitializer() {
+@EnableScheduling
+@EnableWebFlux
+// JPA
+@EntityScan(basePackages = ["io.smetweb.uuid", "io.smetweb.time", "io.smetweb.sim.event"])
+class SmetWebApplication {
+
+    @Autowired
+    private lateinit var rxVertx: Vertx
+
+    @Autowired
+    private lateinit var verticles: List<Verticle>
 
     private val log = getLogger()
-
-//    init {
-//        setRegisterErrorPageFilter(false)
-//    }
-
-//    @Bean (workaround for springfox-data-rest, see https://github.com/springfox/springfox/issues/2932#issuecomment-578799229)
-//    fun discoverers(relProviderPluginRegistry: OrderAwarePluginRegistry<LinkDiscoverer, MediaType>):
-//            PluginRegistry<LinkDiscoverer, MediaType> = relProviderPluginRegistry
 
     @EventListener
     fun onApplicationReady(e: ApplicationReadyEvent) {
@@ -43,16 +47,25 @@ class SmetWebApplication : SpringBootServletInitializer() {
         log.info("Application context closed, no longer processing requests.")
     }
 
-    override fun configure(builder: SpringApplicationBuilder): SpringApplicationBuilder {
-        return builder.sources(SmetWebApplication::class.java)
+    // application context must load before Vertx can start deploying
+    @PostConstruct
+    fun deployVerticle() {
+        this.verticles.forEach { verticle ->
+            // TODO get deployment options from verticle via common interface?
+            log.debug("Deploying verticle {}", verticle::class.java)
+            RxHelper.deployVerticle(rxVertx, verticle).subscribe( {
+                log.info("Deployed verticle {}: {}", verticle::class.java, it)
+            } ) { e ->
+                log.error("Failed to deploy verticle {}: {}", verticle::class.java, e.message, e)
+            }
+        }
     }
 
     companion object {
         @JvmStatic
         fun main(args: Array<String>) {
-            runApplication<SmetWebApplication>(*args) {
-                setBannerMode(Banner.Mode.OFF)
-            }
+            // spring-boot
+            SpringApplication.run(SmetWebApplication::class.java, *args)
         }
     }
 }

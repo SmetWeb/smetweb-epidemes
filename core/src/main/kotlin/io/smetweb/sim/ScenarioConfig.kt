@@ -13,16 +13,16 @@ import javax.measure.quantity.Time
 @ConfigurationProperties(prefix = "scenario")
 data class ScenarioConfig(
 
-        @DefaultValue("default replication")
+        @DefaultValue("default setup")
         val setupName: String,
 
         @DefaultValue("P6M")
-        private val durationPeriod: String = "P1Y",
+        private val durationPeriod: String = "P6M",
 
         @DefaultValue("2000-01-01")
-        private val offsetDate: String = "2100-01-01",
+        private val offsetDate: String = "2000-01-01",
 
-        private val randomSeed: Long = System.currentTimeMillis(),
+        val randomSeed: Long = System.currentTimeMillis(),
 
         @DefaultValue("default analyst")
         val analyst: String? = null,
@@ -42,5 +42,6 @@ data class ScenarioConfig(
                 this.durationPeriod.parseTimeQuantity(this.epoch)
 
         override fun toString(): String =
-                "scenario[name: $setupName, start: $start, duration: $duration]"
+                "${ScenarioConfig::class.java.simpleName}[name: $setupName, seed: $randomSeed, " +
+                        "start + length: $offsetDate + $durationPeriod (i.e. $start + $duration)]"
 }

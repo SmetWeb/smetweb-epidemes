@@ -64,10 +64,10 @@ data class UuidFactLinkEntity(
 	)
 
 	fun toFactLink(): FactLink = FactLink.of(
-			fact = this.fact!!.toSimFactEvent(),
+			fact = this.fact?.toSimFactEvent() ?: error("Attribute not loaded"),
 			linkFetcher = { this.link?.toSimFactEvent() },
-			linkRef = UuidRef(this.linkRef!!),
-			linkResultKind = this.linkResultKind!!.toResultKind() )
+			linkRef = UuidRef(this.linkRef ?: error("Attribute not loaded")),
+			linkResultKind = this.linkResultKind?.toResultKind() ?: error("Attribute not loaded"))
 
 	/** for [Table] column constraint specification */
 	companion object {

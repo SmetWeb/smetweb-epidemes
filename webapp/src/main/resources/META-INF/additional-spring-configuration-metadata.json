@@ -1,0 +1,8 @@
+{
+  "properties": [
+    {
+      "name": "default-port",
+      "type": "java.lang.String",
+      "description": "Description for default-port."
+  }
+] }
