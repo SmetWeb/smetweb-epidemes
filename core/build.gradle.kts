@@ -101,6 +101,7 @@ dependencies {
 
 	// test
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
+	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-log4j2")
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(group = "org.junit.vintage")
