@@ -36,9 +36,19 @@ interface TimeRef:
 	/**
 	 * [ConcreteOrdinal] is a separated interface for defining [TimeRef]
 	 * as [Comparable] on any other [TimeRef] subtype
+	 *
+	 * work-around: compare with smallest unit first, so larger unit is multiplied (which is more exact)
+	 * TODO report work-around to https://github.com/unitsofmeasurement/indriya/issues
 	 */
 	interface ConcreteOrdinal<in T: ConcreteOrdinal<T>>: TimeRef, Comparable<T> {
-		override fun compareTo(other: T): Int = get().compareTo(other.get())
+		override fun compareTo(that: T): Int {
+			val thisUnitInSeconds: Double = this.get().unit.getConverterTo(Units.SECOND).convert(1.0)
+			val thatUnitInSeconds: Double = that.get().unit.getConverterTo(Units.SECOND).convert(1.0)
+			return if(thisUnitInSeconds > thatUnitInSeconds)
+				 -1 * that.get().compareTo(get())
+			else
+				get().compareTo(that.get()) // no need to invert if this' unit is same or less than that's unit
+		}
 	}
 
 	/**

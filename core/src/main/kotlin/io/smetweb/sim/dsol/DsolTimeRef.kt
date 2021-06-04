@@ -11,14 +11,14 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.function.Calculus
 import tech.units.indriya.quantity.Quantities
 import java.math.BigDecimal
-import javax.measure.Quantity
-import javax.measure.Unit
-import javax.measure.quantity.Time
 import java.time.Duration
 import java.time.Instant
 import java.time.temporal.TemporalUnit
 import java.util.*
 import java.util.concurrent.TimeUnit
+import javax.measure.*
+import javax.measure.Unit
+import javax.measure.quantity.Time
 
 /** [DsolTimeRef] models (immutable) virtual/simulated time, extending (but fixating) D-SOL's [SimTime] */
 data class DsolTimeRef(
@@ -28,7 +28,7 @@ data class DsolTimeRef(
 
 	/** always convert to [BigDecimal], for consistent [hashCode] values among the various [Number] subtypes */
 	constructor(value: Number, unit: Unit<Time>):
-			this(value.toDecimal().toQuantity(unit))
+			this(absoluteTime = value.toDecimal().toQuantity(unit))
 
 	constructor(value: Number):
 			this(value, TimeRef.BASE_UNIT)
@@ -55,7 +55,7 @@ data class DsolTimeRef(
 
 	constructor(duration: Duration): this(duration.toQuantity())
 
-	override fun compareTo(other: DsolTimeRef): Int = get().compareTo(other.get())
+	override fun compareTo(that: DsolTimeRef): Int = super<TimeRef.ConcreteOrdinal>.compareTo(that)
 
 	override fun set(value: ComparableQuantity<Time>) {
 		this.absoluteTime = value
@@ -76,7 +76,7 @@ data class DsolTimeRef(
 
 	override fun hashCode(): Int {
 		if (hashCode == null) {
-			hashCode = get().to(TimeRef.BASE_UNIT).value.hashCode()
+			hashCode = get().toQuantity().to(TimeRef.BASE_UNIT).value.hashCode()
 		}
 		return hashCode!!
 	}
