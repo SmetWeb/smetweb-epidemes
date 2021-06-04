@@ -2,7 +2,6 @@ package io.smetweb.sim.dsol
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.smetweb.math.NUMBER_SYSTEM
-import io.smetweb.math.toUnit
 import io.smetweb.time.MICROSECOND
 import io.smetweb.time.MILLISECOND
 import io.smetweb.time.NANOSECOND
@@ -25,15 +24,14 @@ class DsolTimeRefTest {
 		assertNotEquals(DsolTimeRef("1.1E9 ns"), DsolTimeRef(1.1), "units should be different")
 		assertFalse(DsolTimeRef(".0000000000000000000005 ns").le0(), ".0000000000000000000005 ns is not less than or equal to zero")
 		assertTrue(DsolTimeRef(0.00000000, MICROSECOND).ge0(), "0.00000000 ms is greater than or equal to absolute zero")
-		val min1 = DsolTimeRef("1 min") // DsolTimeRef("60 s") // DsolTimeRef("1 min")
+		val min1 = DsolTimeRef("1 min")
 		val sec1 = DsolTimeRef(60)
 		val sec2 = sec1.get()
-		val sec3 = sec2.toUnit(Units.MINUTE)
 		// seconds to minutes converter: Rational(x -> x * 0.01666666666666666666666666666666667), see ScaleHelper::convertTo @ quantity.getUnit().getConverterTo(anotherUnit)
 		assertEquals(0, min1.compareTo(sec1), "1 minute ($min1) compares equal to 60 seconds ($sec1 or $sec2) as per converter: ${sec2.unit.getConverterTo(Units.MINUTE).inverse()}")
 		assertTrue(min1.eq(sec1), "1 minute compares equal to 60 seconds")
 		assertEquals(BigDecimal::class.java, DsolTimeRef(1.1).get().value::class.java)
-		assertEquals(BigDecimal::class.java, DsolTimeRef("1.1E9 ns").get().value::class.java) // fails when narrowing is allowed
+		assertEquals(BigDecimal::class.java, DsolTimeRef("1.1E9 ns").get().value::class.java)
 	}
 
 	@Test

@@ -24,13 +24,12 @@ import javax.measure.quantity.Time
 /**
  * [TimeRef] is a [Supplier] that wraps some measurable amount or
  * [ComparableQuantity] of [Time], referencing e.g.
- * <li>some time span (defined on a ratio scale); or</li>
- * <li>some time point (defined on an interval scale,
- * relative to some external absolute epoch like [Instant.EPOCH])</li>
+ * - some time span (defined on a ratio scale); or
+ * - some time point (defined on an interval scale,
+ * relative to some external absolute epoch like [Instant.EPOCH])
  */
 @FunctionalInterface
-interface TimeRef:
-		Ref<ComparableQuantity<Time>> // TODO allow [Quantity] types [Time] AND [Dimensionless]?
+interface TimeRef: Ref<ComparableQuantity<Time>> // TODO allow [Quantity] types [Time] AND [Dimensionless]?
 {
 
 	/**
@@ -38,7 +37,7 @@ interface TimeRef:
 	 * as [Comparable] on any other [TimeRef] subtype
 	 *
 	 * work-around: compare with smallest unit first, so larger unit is multiplied (which is more exact)
-	 * TODO report work-around to https://github.com/unitsofmeasurement/indriya/issues
+	 * reported to https://github.com/unitsofmeasurement/indriya/issues/356
 	 */
 	interface ConcreteOrdinal<in T: ConcreteOrdinal<T>>: TimeRef, Comparable<T> {
 		override fun compareTo(that: T): Int {
