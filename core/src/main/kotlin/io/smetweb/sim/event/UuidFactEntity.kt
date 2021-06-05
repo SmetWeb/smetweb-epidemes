@@ -126,7 +126,7 @@ data class UuidFactEntity(
 			occur = occur,
 			details = details)
 
-	fun toSimFactEvent(): UuidFact = UuidFact(
+	fun toUuidFact(): UuidFact = UuidFact(
             id = UuidRef(this.id ?: error("Attribute not loaded")),
             kind = this.kind ?: error("Attribute not loaded"),
             exchange = this.exchange?.toSimFactContext() ?: error("Attribute not loaded"),

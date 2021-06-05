@@ -1,37 +1,47 @@
 package io.smetweb.sim.dsol
 
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.smetweb.time.TimeRef
 import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
 import io.smetweb.time.ManagedClock
-import io.smetweb.time.ManagedTaskScheduler
+import io.smetweb.time.ManagedClockService
+import io.smetweb.time.ManagedClockService.ClockStatus.*
+import io.smetweb.time.ManagedRxTaskScheduler
 import nl.tudelft.simulation.dsol.experiment.Experiment
+import nl.tudelft.simulation.dsol.experiment.ReplicationInterface.*
 import nl.tudelft.simulation.dsol.formalisms.eventscheduling.SimEventInterface
+import nl.tudelft.simulation.dsol.simulators.DESSSimulatorInterface.*
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulator
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.unit.Units
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.Clock
 import java.time.Instant
-import java.util.Date
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 import javax.measure.quantity.Time
 
 /**
- * [DsolTaskScheduler] is a [ManagedTaskScheduler] that delegates to
+ * [DsolRxTaskScheduler] is a [ManagedRxTaskScheduler] that delegates to
  * a D-SOL [DEVSSimulatorInterface] which operates in [DsolTimeRef]-type time lines
  */
 @Suppress("REDUNDANT_LABEL_WARNING")
-class DsolTaskScheduler(
+class DsolRxTaskScheduler(
 		private val scenarioConfig: ScenarioConfig,
 		private val simSupplier: (id: Serializable) -> DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> =
 				{ id: Serializable -> DEVSSimulator(id) } , // default constructs a standard (i.e. single-threaded) simulator instance
 		private val treatment: DsolTreatment = DsolTreatment() // default treatment is steady-state (i.e. non-terminating)
-): ManagedTaskScheduler {
+): ManagedRxTaskScheduler {
 
 	private val log = getLogger()
+
+	override val statusSource: BehaviorSubject<ManagedClockService.ClockStatus> = BehaviorSubject.create()
+
+	override val timeSource: BehaviorSubject<TimeRef> = BehaviorSubject.create()
 
 	override val epoch: Instant by lazy { this.scenarioConfig.epoch }
 
@@ -40,8 +50,18 @@ class DsolTaskScheduler(
 	/** *lazily* initialized [Experiment], which produces (emits) simulation and replication events */
 	private val experiment: Experiment<ComparableQuantity<Time>, BigDecimal, DsolTimeRef,
 			DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> by lazy {
-		this.simSupplier(treatment.name).createExperiment(treatment = treatment,
+		val result = this.simSupplier(treatment.name).createExperiment(treatment = treatment,
 				analyst = scenarioConfig.analyst, description = scenarioConfig.description)
+		(result.model as DsolModel).timeSource.subscribe(this.timeSource)
+		(result.model as DsolModel).statusSource.mapOptional { event ->
+			when(event) {
+				START_REPLICATION_EVENT -> Optional.of(INITIALIZING)
+				START_EVENT -> Optional.of(STARTED)
+				STOP_EVENT -> Optional.of(STOPPED)
+				else -> Optional.empty()
+			}
+		}.subscribe(this.statusSource)
+		result
 	}
 
 	private val simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>
@@ -59,9 +79,9 @@ class DsolTaskScheduler(
 
 	override fun timeOf(date: Date): DsolTimeRef = DsolTimeRef.of(date, this.epochDate)
 
-	override fun timeOf(instant: Instant): TimeRef = DsolTimeRef.of(instant, this.epoch)
+	override fun timeOf(instant: Instant): DsolTimeRef = DsolTimeRef.of(instant, this.epoch)
 
-	// SchedulerService
+	// ManagedClockService
 
 	override fun start() = this.simulator.start()
 
@@ -69,12 +89,13 @@ class DsolTaskScheduler(
 
 	override fun shutdown() {
 		(this.simulator as DEVSSimulator).apply {
-			stop()
+			if(this.isStartingOrRunning)
+				stop()
 			cleanUp()
 		}
 	}
 
-	// RxSchedulerService
+	// RxClockService
 
 	override fun trigger(schedule: Observable<TimeRef>): Observable<TimeRef> =
 			// TODO map cancellable [SimEventInterface] through a [PublishSubject] rather than [AtomicReference]?

@@ -26,15 +26,15 @@ fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventTypeInterface):
 		}
 
 fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.createEmptyModel(
-	emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
-	emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
+	statusSource: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
+	timeSource: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
 	inputParameters: InputParameterMap? = null,
 	outputStatistics: MutableList<StatisticsInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> = mutableListOf(),
 	simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this
 ): DsolModel = object: DsolModel {
 	private var streamInformation: StreamInformation = StreamInformation() // wrap external PRNG as DSOL stream?
-	override val statusSource = emitStatus
-	override val timeSource = emitTime
+	override val statusSource = statusSource
+	override val timeSource = timeSource
 	override fun constructModel() { /* no-op */ } // trigger model reset event?
 	override fun getSimulator() = simulator
 	override fun getInputParameterMap() = inputParameters
@@ -55,10 +55,10 @@ fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.cr
 	description: String? = null,
 	inputParameters: InputParameterMap? = null,
 	outputStatistics: MutableList<StatisticsInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>> = mutableListOf(),
-	emitStatus: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
-	emitTime: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
+	statusSource: BehaviorSubject<EventTypeInterface> = BehaviorSubject.create(),
+	timeSource: BehaviorSubject<DsolTimeRef> = BehaviorSubject.create(),
 	simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = this,
-	model: DsolModel = createEmptyModel(emitStatus, emitTime, inputParameters, outputStatistics, simulator),
+	model: DsolModel = createEmptyModel(statusSource, timeSource, inputParameters, outputStatistics, simulator),
 	replication: ReplicationInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> = SingleReplication(treatment.name, treatment.startTime, treatment.warmUpPeriod, treatment.runLength)
 ) = Experiment(
 	simulator,
@@ -76,7 +76,7 @@ fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.cr
 	simulator.emit(START_EVENT, STOP_EVENT, TIME_STEP_CHANGED_EVENT, WARMUP_EVENT,
 			END_REPLICATION_EVENT, START_REPLICATION_EVENT)
 			.map(EventInterface::getType)
-			.subscribe(emitStatus)
+			.subscribe(statusSource)
 
 	// feed the observable simulation time stream
 	simulator.emit(TIME_CHANGED_EVENT)
@@ -85,5 +85,5 @@ fun DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>.cr
 				(event as TimedEvent<ComparableQuantity<Time>>).timeStamp
 			}
 			.map(::DsolTimeRef)
-			.subscribe(emitTime)
+			.subscribe(timeSource)
 }

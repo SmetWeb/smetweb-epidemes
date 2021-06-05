@@ -1,19 +1,16 @@
 package io.smetweb.time
 
-import io.smetweb.time.RxManagedClockService.RxScheduledFuture
+import io.smetweb.time.RxClockService.RxScheduledFuture
 import java.util.Date
 import java.util.concurrent.*
 import javax.enterprise.concurrent.*
 
 /**
- * [ManagedExecutorService] provides the [ManagedScheduledExecutorService] scheduling API
+ * [ManagedRxExecutorService] provides the [ManagedScheduledExecutorService] scheduling API
  * (as of Java 1.5) specified in the JSR-236 concurrency API for JVM and servlet containers
  */
 @Suppress("REDUNDANT_LABEL_WARNING", "UNUSED")
-interface ManagedExecutorService: RxManagedClockService, ManagedScheduledExecutorService {
-
-	fun dateAfter(delay: Number, unit: TimeUnit) =
-			SchedulerService@this.timeAfter(delay, unit).toDate(this.epochDate)
+interface ManagedRxExecutorService: ManagedRxClockService, ManagedScheduledExecutorService {
 
 	fun Trigger.startDate(): Date =
 			Trigger@this.getNextRunTime(null, SchedulerService@date())

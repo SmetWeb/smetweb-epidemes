@@ -4,6 +4,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
 class ManagedClock(
@@ -21,13 +22,18 @@ class ManagedClock(
 
 	override fun getZone(): ZoneId = this.timeZone
 
-	override fun instant(): Instant = this.timeToInstantCache.updateAndGet { old ->
-		val time = this.timeRefSupplier()
-		if(old?.first == time) {
-			old // unchanged timeRef, same instant
-		} else {
-			Pair(time, this.timeRefConverter(time))
-		}
-	}.second
+	override fun instant(): Instant = toInstant()
 
+	// used by e.g. Spring's ScheduledTaskRegistrar.scheduleFixedDelayTask(..)
+	override fun millis(): Long = Date.from(toInstant()).time
+
+	private fun toInstant(): Instant =
+		this.timeToInstantCache.updateAndGet { old ->
+			val time = this.timeRefSupplier()
+			if(old?.first == time) {
+				old // unchanged timeRef, same instant
+			} else {
+				Pair(time, this.timeRefConverter(time))
+			}
+		}.second
 }

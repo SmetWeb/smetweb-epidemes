@@ -71,6 +71,6 @@ open class UuidFactRepository(
 	override fun findByKey(key: UuidRef): UuidFact? =
 			this.em.findByAttribute(UuidFactEntity_.id, key.get())
 					.firstOrNull()
-					?.toSimFactEvent()
+					?.toUuidFact()
 
 }

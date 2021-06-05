@@ -14,10 +14,10 @@ import javax.measure.Quantity
 import javax.measure.quantity.Time
 
 /**
- * [RxManagedClockService] extends [ManagedClockService] with RxJava API (Java 8)
+ * [RxClockService] extends [ClockService] with RxJava API (Java 8)
  */
 @Suppress("REDUNDANT_LABEL_WARNING", "UNUSED")
-interface RxManagedClockService: ManagedClockService {
+interface RxClockService: ClockService {
 
 	fun trigger(schedule: Observable<TimeRef>): Observable<TimeRef>
 
@@ -40,7 +40,7 @@ interface RxManagedClockService: ManagedClockService {
 			firstTime: TimeRef,
 			repeater: (TimeRef) -> TimeRef?
 	) {
-		trigger(firstTime, repeater).subscribe(listener, disposer, { disposer(null) })
+		trigger(firstTime, repeater).subscribe(listener, disposer) { disposer(null) }
 	}
 
 	/** @see [Observable.timer] */
@@ -56,18 +56,17 @@ interface RxManagedClockService: ManagedClockService {
 			unit: TimeUnit = TimeUnit.MILLISECONDS,
 			interval: Quantity<Time> = period.toQuantity(unit)
 	): Observable<TimeRef> = trigger(timeAfter(initialDelay ?: 0L, unit)) {
-		timeAfter(interval) // equivalent to `it -> TimeRef.of(it.get().add(interval))`
+		timeAfter(interval)
 	}
 
 	/** @see [Observable.delay] operator */
 	fun <V: Any> Observable<V>.delayManaged(
 			delay: Number,
 			unit: TimeUnit = TimeUnit.MILLISECONDS,
-			scheduler: RxManagedClockService = this@RxManagedClockService
+			scheduler: RxClockService = this@RxClockService
 	): Observable<V> = Observable@this.flatMapSingle { value ->
 		scheduler.timer(delay, unit).map { value }
 	}
-
 	/**
 	 * [RxScheduledFuture] decorator wraps a [CompletableFuture]
 	 * that is linked to its [Observable] event [schedule]
@@ -75,19 +74,19 @@ interface RxManagedClockService: ManagedClockService {
 	 * just *after* the current execution has finished
 	 * and *after* the consecutive execution (if any) has been scheduled
 	 *
-	 * TODO apply generated schedule directly to [RxManagedClockService.trigger] API
+	 * TODO apply generated schedule directly to [RxClockService.trigger] API
 	 * TODO implement a [ScheduledFuture] without any RxJava components for [ManagedClockService]
 	 */
 	@Suppress("MemberVisibilityCanBePrivate")
 	class RxScheduledFuture<V: Any?>(
-			private val schedulerService: RxManagedClockService,
-			private val future: CompletableFuture<V> = CompletableFuture(), // the wrapped [Future]
-			private val result: AtomicReference<V> = AtomicReference(),
-			private val command: () -> V?,
-			startTime: Date = schedulerService.date(), // immediately, i.e. as soon as possible
-			repeater: (Date) -> Date? = { null }, // default: no rescheduling
-			val schedule: Observable<Date> = Observable.create { emitter ->
-				emitter.onNext(startTime)  // always emit startTime
+		private val schedulerService: RxClockService,
+		private val future: CompletableFuture<V> = CompletableFuture(), // the wrapped [Future]
+		private val result: AtomicReference<V> = AtomicReference(),
+		private val command: () -> V?,
+		startTime: Date = schedulerService.date(), // immediately, i.e. as soon as possible
+		repeater: (Date) -> Date? = { null }, // default: no rescheduling
+		val schedule: Observable<Date> = Observable.create { emitter ->
+//				emitter.onNext(startTime)  // always emit startTime
 				// schedule emission of next trigger event
 				val startTimeRef = schedulerService.timeOf(startTime)
 				schedulerService.trigger(startTimeRef) trigger@{
@@ -111,20 +110,16 @@ interface RxManagedClockService: ManagedClockService {
 
 		private val nextExecutionTime: AtomicReference<Date> = AtomicReference()
 
-		private val subscription: Disposable
-
-		init {
-			// add command executions *once* as first subscription
-			this.subscription = this.schedule.subscribe(
-					{ nextTime: Date? ->
-						// update next execution time
-						this.nextExecutionTime.set(nextTime)
-						// trigger execution and store result
-						this.command()?.let(this.result::set)
-					},
-					{ this.future.completeExceptionally(it) },
-					{ this.future.complete(this.result.get()) })
-		}
+		// add command executions *once* as first subscription
+		private val subscription: Disposable = this.schedule.subscribe(
+			{ nextTime: Date? ->
+				// update next execution time
+				this.nextExecutionTime.set(nextTime)
+				// trigger execution and store result
+				this.command()?.let(this.result::set)
+			},
+			{ this.future.completeExceptionally(it) },
+			{ this.future.complete(this.result.get()) })
 
 		override fun get(): V = this.future.get()
 

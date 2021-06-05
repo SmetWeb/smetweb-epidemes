@@ -32,12 +32,12 @@ private val DATE_FORMAT = SimpleDateFormat("HH:mm:ss.SSS ZZZ")
 private val LOCAL_ZONE = ZoneId.systemDefault()
 
 @SpringBootTest(classes = [SchedulableTarget::class, TestConfig::class])
-class DsolTaskSchedulerTest {
+class DsolRxTaskSchedulerTest {
 
 	private val log: Logger = getLogger()
 
 	@Autowired
-	private lateinit var scheduler: DsolTaskScheduler
+	private lateinit var scheduler: DsolRxTaskScheduler
 
 	@SpyBean
 	private lateinit var tasks: SchedulableTarget
@@ -94,6 +94,6 @@ open class TestConfig: SchedulingConfigurer {
 
 	@Primary
 	@Bean(destroyMethod = "shutdown")
-	open fun taskScheduler(): DsolTaskScheduler = DsolTaskScheduler(ScenarioConfig("testSim"))
+	open fun taskScheduler(): DsolRxTaskScheduler = DsolRxTaskScheduler(ScenarioConfig("testSim"))
 
 }

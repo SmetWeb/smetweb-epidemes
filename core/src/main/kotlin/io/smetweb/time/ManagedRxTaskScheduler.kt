@@ -1,36 +1,39 @@
 package io.smetweb.time
 
-import io.smetweb.time.RxManagedClockService.RxScheduledFuture
+import io.smetweb.time.RxClockService.RxScheduledFuture
 import org.springframework.scheduling.TaskScheduler
 import org.springframework.scheduling.Trigger
 import org.springframework.scheduling.TriggerContext
 import org.springframework.scheduling.annotation.Scheduled
-import java.util.Date
+import java.time.Clock
+import java.util.*
 
 /**
- * [ManagedTaskScheduler] extends [RxManagedClockService] to comply with
+ * [ManagedRxTaskScheduler] extends [RxClockService] to comply with
  * Spring's [TaskScheduler] API for scheduled task execution, and is therefore compatible with
  * Spring's [Trigger] API (including Spring's @[Scheduled] annotation accepting e.g.
  * [cron expressions](https://www.baeldung.com/cron-expressions))
  */
 @Suppress("REDUNDANT_LABEL_WARNING", "UNUSED")
-interface ManagedTaskScheduler: RxManagedClockService, TaskScheduler {
+interface ManagedRxTaskScheduler: ManagedClockService, RxClockService, TaskScheduler {
+
+	override fun getClock(): Clock = clock()
 
 	fun Trigger.nextExecutionTime(): Date? =
 			Trigger@this.nextExecutionTime(ManagedTriggerContext(SchedulerService@ date()))
 
 	override fun schedule(task: Runnable, startTime: Date): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@this,
-					command = task::run,
-					startTime = startTime) // no repeat, task should run once only
+		RxScheduledFuture(
+				schedulerService = RxSchedulerService@this,
+				command = task::run,
+				startTime = startTime) // no repeat, task should run once only
 
 	override fun scheduleAtFixedRate(task: Runnable, startTime: Date, periodMillis: Long): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@this,
-					command = task::run,
-					startTime = startTime,
-					repeater = { now -> Date(now.time + periodMillis) })
+		RxScheduledFuture(
+				schedulerService = RxSchedulerService@this,
+				command = task::run,
+				startTime = startTime,
+				repeater = { now -> Date(now.time + periodMillis) })
 
 	override fun schedule(task: Runnable, trigger: Trigger): RxScheduledFuture<Unit> =
 			RxScheduledFuture(
