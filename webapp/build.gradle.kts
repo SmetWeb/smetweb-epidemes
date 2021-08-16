@@ -1,7 +1,7 @@
-import org.jetbrains.kotlin.backend.wasm.lower.excludeDeclarationsFromCodegen
+//import org.jetbrains.kotlin.backend.wasm.lower.excludeDeclarationsFromCodegen
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
-val mainClass: String = "io.smetweb.web.SmetWebApplication.Companion"
+val appClass: String = "io.smetweb.web.SmetWebApplication.Companion"
 
 plugins {
 	application
@@ -14,7 +14,7 @@ plugins {
 }
 
 application {
-	mainClassName = "$mainClass"
+	mainClass.set(appClass)
 }
 
 // see https://github.com/springdoc/springdoc-openapi-gradle-plugin#customization
@@ -28,7 +28,7 @@ application {
 
 // see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
 tasks.withType<BootJar> {
-	mainClassName = mainClass.toString()
+	mainClass.set(appClass)
 	manifest {
 		attributes("Start-Class" to mainClass)
 	}

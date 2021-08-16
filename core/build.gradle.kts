@@ -14,14 +14,17 @@ allOpen {
 // project classpath
 dependencies {
 	// `project` configuration bean reads values from file `gradle.properties`
+	val kotlinxVersion: String by project
 	val persistenceApiVersion: String by project
 	val concurrentApiVersion: String by project
+//	val kafkaVersion: String by project
 	val ucumVersion: String by project
 	val uomLibVersion: String by project
 	val math3Version: String by project
 	val coltVersion: String by project
 	val ujmpVersion: String by project
-	val ejmlVersion: String by project
+//	val ejmlVersion: String by project
+//	val nd4jVersion: String by project
 	val rxJavaVersion: String by project
 	val rxKotlinVersion: String by project
 	val apFloatVersion: String by project
@@ -35,32 +38,37 @@ dependencies {
 
 	api(kotlin("stdlib-jdk8"))
 	api(kotlin("reflect"))
+	api(group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx3", version = kotlinxVersion)
 
 //	api(group = "ch.qos.logback", name = "logback-classic")
 	api(group = "org.apache.logging.log4j", name = "log4j", version = "2.13.3")
 	api(group = "org.slf4j", name = "jul-to-slf4j")
 //	api(group = "org.slf4j", name = "log4j-over-slf4j")
 
-	// units of measurement (JSR-363)
+	// units of measurement (JSR-363, replacing JSR-275)
 	api(group = "systems.uom", name = "systems-ucum", version = ucumVersion)
 	api(group = "tech.uom.lib", name = "uom-lib-jackson", version = uomLibVersion)
 
 	// units of measurement 2.0 (JSR-385, extending JSR-363)
 	api(group = "tech.units", name = "indriya", version = indriyaVersion)
 
-	// commons-math3, including RNGs, distributions, algorithms, etc.
-	testImplementation(group = "org.apache.commons", name = "commons-math3", version = math3Version)
-
-	api(group = "colt", name = "colt", version = coltVersion)
-
-	// Efficient Java Matrix Library for linear algebra on real/complex/dense/sparse matrices
-	compileOnly(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
-
-	// Universal Java MAtrix Package, incorporating dense matrix classes from Apache commons math
-	compileOnly(group = "org.ujmp", name = "ujmp-commonsmath", version = ujmpVersion)
-
 	// arbitrary-precision floating point calculations (degrees from/to radians, factorials, etc.)
 	api(group = "org.apfloat", name = "apfloat", version = apFloatVersion)
+
+	// Universal Java MAtrix Package, incorporating dense matrix classes from Apache commons math (2015)
+	api(group = "org.ujmp", name = "ujmp-commonsmath", version = ujmpVersion)
+
+	// commons-math3, including RNGs, distributions, algorithms, etc. (2016)
+	compileOnly(group = "org.apache.commons", name = "commons-math3", version = math3Version)
+
+	// kafka (2021)
+//	compileOnly(group = "org.apache.kafka", name = "kafka-streams", version = kafkaVersion)
+
+	// Efficient Java Matrix Library for linear algebra on real/complex/dense/sparse matrices (2020)
+//	compileOnly(group = "org.ejml", name = "ejml-all", version = ejmlVersion)
+
+	// ND4J: Scientific Computing on the JVM (2021)
+//	compileOnly(group = "org.nd4j", name = "nd4j-api", version = nd4jVersion)
 
 	// persistence (JPA, multiple JSRs)
 	compileOnly(group = "javax.persistence", name = "javax.persistence-api", version = persistenceApiVersion)
@@ -105,10 +113,13 @@ dependencies {
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(group = "org.junit.vintage")
-		exclude(group = "ch.qos.logback", module = "logback-classic")
+//		exclude(group = "ch.qos.logback", module = "logback-classic")
 	}
 	testImplementation(group = "com.h2database", name = "h2", version = h2Version)
 	testImplementation(group = "org.awaitility", name = "awaitility-kotlin", version = "4.0.2")
+
+	// CERN's prng
+	testImplementation(group = "colt", name = "colt", version = coltVersion)
 
 	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
 	testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine")

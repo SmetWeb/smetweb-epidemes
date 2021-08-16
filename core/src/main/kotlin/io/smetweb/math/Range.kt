@@ -5,6 +5,10 @@ import javax.measure.Quantity
 import javax.measure.Unit
 import kotlin.Comparator
 
+/**
+ * A one-dimensional [Range] of any [Comparable] type, with a [lowerBound] that may be [lowerInclusive] or negative infinite,
+ * and an [upperBound] that may be [upperInclusive] or positive infinite
+ */
 data class Range<T: Comparable<*>>(
         val lower: Extreme<T> = Extreme.negativeInfinity(),
         val upper: Extreme<T> = Extreme.positiveInfinity()
@@ -12,25 +16,27 @@ data class Range<T: Comparable<*>>(
 
     /**
      * @param value the value (inclusive) or `null` for infinite range
-     * @return the [Range] instance
+     * @return a [Range] instance
      */
     constructor(value: T? = null):
-            this(value, value)
+            this(minimum = value, minimumInclusive = true,
+                maximum = value, maximumInclusive = true)
 
     constructor(minimum: T? = null, maximum: T? = null):
-            this(minimum, minimum != null, maximum, false)
+            this(minimum = minimum, minimumInclusive = minimum != null,
+                maximum = maximum, maximumInclusive = minimum == maximum)
 
     constructor(minimum: T?, minimumInclusive: Boolean, maximum: T?, maximumInclusive: Boolean):
             this(lower = Extreme.lower(minimum, minimumInclusive),
                     upper = Extreme.upper(maximum, maximumInclusive))
 
-	fun lowerValue(): T = lower.value ?: error("Infinite")
+	fun lowerBound(): T = lower.value ?: error("Infinite")
 
 	fun lowerInclusive(): Boolean = lower.inclusive ?: error("Infinite")
 
     fun lowerFinite(): Boolean = lower.isFinite()
 
-    fun upperValue(): T = upper.value ?: error("Infinite")
+    fun upperBound(): T = upper.value ?: error("Infinite")
 
     fun upperInclusive(): Boolean = upper.inclusive ?: error("Infinite")
 
@@ -42,9 +48,9 @@ data class Range<T: Comparable<*>>(
 	 */
 	fun gt(value: T): Boolean =
             lowerFinite() && if (lowerInclusive())
-                Compare.lt(value, lowerValue())
+                Compare.lt(value, lowerBound())
             else
-                Compare.le(value, lowerValue())
+                Compare.le(value, lowerBound())
 
     /**
      * @param value the [T] to test
@@ -53,29 +59,29 @@ data class Range<T: Comparable<*>>(
      */
     fun lt(value: T): Boolean =
             upperFinite() && if (upperInclusive())
-                Compare.gt(value, upperValue())
+                Compare.gt(value, upperBound())
             else
-                Compare.ge(value, upperValue())
+                Compare.ge(value, upperBound())
 
     /**
      * @param value the [T] to test
      * @return `true` iff this [Range] contains specified value
      * (i.e. is greater nor lesser)
      */
-    fun contains(value: T): Boolean? {
+    fun contains(value: T): Boolean {
         return !gt(value) && !lt(value)
     }
 
     fun overlaps(that: Range<T>): Boolean {
         if(this == that)
             return true
-        if (that.upperFinite() && gt(that.upperValue()))
+        if (that.upperFinite() && gt(that.upperBound()))
             return false
-        if (that.lowerFinite() && lt(that.lowerValue()))
+        if (that.lowerFinite() && lt(that.lowerBound()))
             return false
-        if (this.upperFinite() && that.gt(upperValue()))
+        if (this.upperFinite() && that.gt(upperBound()))
             return false
-        return !(this.lowerFinite() && that.lt(lowerValue()))
+        return !(this.lowerFinite() && that.lt(lowerBound()))
     }
 
     fun intersect(that: Range<T>): Range<T>? {
@@ -85,9 +91,9 @@ data class Range<T: Comparable<*>>(
             null
     }
 
-    fun <R: Comparable<R>> map(mapper: (T?) -> R?): Range<R>? {
-        val lower = mapper(lowerValue()) ?: error("Infinite")
-        val upper = mapper(upperValue()) ?: error("Infinite")
+    fun <R: Comparable<R>> map(mapper: (T?) -> R?): Range<R> {
+        val lower = mapper(lowerBound()) ?: error("Infinite")
+        val upper = mapper(upperBound()) ?: error("Infinite")
         return if (lowerFinite() && upperFinite() && Compare.gt(lower, upper))
             Range(upper, upperInclusive(), lower, lowerInclusive()) // reverse
         else
@@ -96,23 +102,21 @@ data class Range<T: Comparable<*>>(
 
     override fun toString(): String {
         val sb: StringBuilder = StringBuilder()
-                .append(if (lowerInclusive()) '[' else '<').append(this.lower)
+                .append(if (lowerFinite() && lowerInclusive()) '[' else '<').append(this.lower)
         if (!lowerFinite() || !upperFinite()
-                || lowerValue() != upperValue()) sb.append("; ").append(this.upper)
-        sb.append(if (upperInclusive()) ']' else '>')
+                || lowerBound() != upperBound()) sb.append("; ").append(this.upper)
+        sb.append(if (upperFinite() && upperInclusive()) ']' else '>')
         return sb.toString()
     }
 
-    override fun compareTo(other: Range<T>): Int {
-        return compare(this, other)
-    }
+    override fun compareTo(other: Range<T>): Int = compare(this, other)
 
     /**
      * @param map the source mapping
      * @return a submap view containing values with intersecting keys
      */
     fun <V> applyTo(map: SortedMap<T, V>): SortedMap<T, V> {
-        return map.subMap(lowerValue(), upperValue())
+        return map.subMap(lowerBound(), upperBound())
     }
 
     /**
@@ -124,10 +128,10 @@ data class Range<T: Comparable<*>>(
         if (map.isEmpty())
             return map
         // use previous key if floorLower==true (given finite lower bound)
-        val floor = if (floorLower && lowerFinite()) map.floorKey(lowerValue()) else null
-        val from = floor ?: if (lowerFinite()) lowerValue() else map.firstKey()
+        val floor = if (floorLower && lowerFinite()) map.floorKey(lowerBound()) else null
+        val from = floor ?: if (lowerFinite()) lowerBound() else map.firstKey()
         val fromIncl = lowerInclusive() || !lowerFinite()
-        val to = if (upperFinite()) upperValue() else map.lastKey()
+        val to = if (upperFinite()) upperBound() else map.lastKey()
         val toIncl = upperInclusive() || !upperFinite()
         return map.subMap(from, fromIncl, to, toIncl)
     }
@@ -142,10 +146,10 @@ data class Range<T: Comparable<*>>(
         if (set.isEmpty())
             return set
         // use previous key if floorLower==true (given finite lower bound)
-        val floor = if (floorLower && lowerFinite()) set.floor(lowerValue()) else null
-        val from = floor ?: if (lowerFinite()) lowerValue() else set.first()
+        val floor = if (floorLower && lowerFinite()) set.floor(lowerBound()) else null
+        val from = floor ?: if (lowerFinite()) lowerBound() else set.first()
         val fromIncl = lowerInclusive() || !lowerFinite()
-        val to = if (upperFinite()) upperValue() else set.last()
+        val to = if (upperFinite()) upperBound() else set.last()
         val toIncl = upperInclusive() || !upperFinite()
         return set.subSet(from, fromIncl, to, toIncl)
     }
@@ -161,8 +165,17 @@ data class Range<T: Comparable<*>>(
                 Range(lower = Extreme.lower(minimum, minimumInclusive), upper = Extreme.positiveInfinity())
 
         /** @return a [Range] representing (&larr;,x) or (&larr;,x] */
+        fun <T: Comparable<*>> downTo(minimum: T, minimumInclusive: Boolean = false) = upFrom(minimum, minimumInclusive)
+
+        /** @return a [Range] representing (&larr;,x) or (&larr;,x] */
+        fun <T: Comparable<*>> downToAndIncluding(minimum: T) = upFrom(minimum, true)
+
+        /** @return a [Range] representing (&larr;,x) or (&larr;,x] */
         fun <T: Comparable<*>> upTo(maximum: T, maximumInclusive: Boolean = false) =
-                Range(lower = Extreme.negativeInfinity(), upper = Extreme.lower(maximum, maximumInclusive))
+            Range(lower = Extreme.negativeInfinity(), upper = Extreme.lower(maximum, maximumInclusive))
+
+        /** @return a [Range] representing (&larr;,x) or (&larr;,x] */
+        fun <T: Comparable<*>> upToAndIncluding(maximum: T) = upTo(maximum, true)
 
         /**
          * @param lhs comparison's left-hand-side

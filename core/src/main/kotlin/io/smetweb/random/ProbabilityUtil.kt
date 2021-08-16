@@ -99,7 +99,7 @@ fun PseudoRandom.triangular(min: Number, mode: Number, max: Number): Probability
     return this.toDistribution {
         val p: BigDecimal = it.nextDouble().toDecimal()
         if (p < lowerDivTotal)
-            minBD.addTo(p.multiply(lowerTimesTotal).sqrt())
+            minBD.add(p.multiply(lowerTimesTotal).sqrt())
         else maxBD.subtract(BigDecimal.ONE.subtract(p).multiply(upperTimesTotal).sqrt())
     }
 }

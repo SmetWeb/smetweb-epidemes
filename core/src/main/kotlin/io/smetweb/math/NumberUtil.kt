@@ -1,18 +1,15 @@
 package io.smetweb.math
 
-//import tech.units.indriya.quantity.Quantities
 import org.apfloat.Apfloat
 import org.apfloat.ApfloatMath
 import org.apfloat.ApfloatRuntimeException
 import org.apfloat.Apint
-import tech.units.indriya.ComparableQuantity
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.math.MathContext
 import java.math.RoundingMode
 import java.time.ZonedDateTime
 import java.util.Comparator
-import javax.measure.Quantity
 import kotlin.experimental.and
 
 /**
@@ -57,24 +54,22 @@ fun BigDecimal.isExact(): Boolean =
 		this.signum() == 0 || this.scale() <= 0 || this.stripTrailingZeros().scale() <= 0
 
 /**
- * @return `true` iff the [BigDecimal] has scale `<=0` (http://stackoverflow.com/a/12748321)
+ * @return `true` iff the [Apfloat] has scale `<=0` (http://stackoverflow.com/a/12748321)
  */
 fun Apfloat.isExact(): Boolean =
 		this.signum() == 0 || this.truncate() == this
 
 /**
- * @param value
- * @return
+ * @return `true` iff the [Number] has scale `<=0` (http://stackoverflow.com/a/12748321)
  */
 fun Number.isExact(): Boolean =
 		when(this) {
 			is Long, is Int, is Short, is Byte, is BigInteger, is Apint -> true
-			is Apfloat -> this.isExact()
-			else -> this.toDecimal().isExact()
+			is Apfloat -> isExact()
+			else -> toDecimal().isExact()
 		}
 
 /**
- * @param value
  * @param scale
  * @return a [String] representation of scaled value with
  * [DEFAULT_CONTEXT] rounding mode
@@ -85,7 +80,6 @@ fun Number.toString(scale: Int): String =
 /**
  * adopted from https://forum.processing.org/two/discussion/10384/bigdecimal-to-byte-array
  *
- * @param num the [BigDecimal] to encode
  * @return raw big-endian two's-complement binary representation with first
  * 4 bytes representing the scale.
  *
@@ -109,8 +103,7 @@ fun Number.toByteArray(): ByteArray {
 /**
  * adopted from https://forum.processing.org/two/discussion/10384/bigdecimal-to-byte-array
  *
- * @param raw big-endian two's-complement binary representation, with first 4
- * bytes representing the scale.
+ * big-endian two's-complement binary representation, with first 4 bytes representing the scale.
  *
  * @return a [BigDecimal]
  * @see BigInteger
@@ -130,35 +123,35 @@ fun ByteArray.toDecimal(): BigDecimal {
 
 @Throws(ApfloatRuntimeException::class)
 fun Number.toApfloat(): Apfloat =
-		when(this) {
-			is Apfloat -> this
-			is BigDecimal -> Apfloat(this)
-			is Double -> Apfloat(this)
-			is Float -> Apfloat(this)
-			is Long, is Int, is Short, is Byte -> Apfloat(this as Long)
-			is BigInteger -> Apfloat(this)
-			else -> Apfloat(this.toDecimal())
-		}
+	when(this) {
+		is Apfloat -> this
+		is BigDecimal -> Apfloat(this)
+		is Double -> Apfloat(this)
+		is Float -> Apfloat(this)
+		is Long, is Int, is Short, is Byte -> Apfloat(this as Long)
+		is BigInteger -> Apfloat(this)
+		else -> Apfloat(this.toDecimal())
+	}
 
 /**
  * TODO test with [kotlin.Number] vs [java.lang.Number] subtypes, e.g. [BigInteger] and [Apfloat]
  */
 @Throws(NumberFormatException::class)
-fun Number.toDecimal(): BigDecimal =
-		when(this) {
-			is BigDecimal -> this
-			is Int -> this.toBigDecimal()
-			is Byte -> this.toInt().toBigDecimal()
-			is Long -> this.toBigDecimal(mathContext = DEFAULT_CONTEXT)
-			is Double -> this.toBigDecimal(mathContext = DEFAULT_CONTEXT)
-			is BigInteger -> this.toBigDecimal(mathContext = DEFAULT_CONTEXT)
-			is Apint -> BigDecimal(this.toBigInteger(), DEFAULT_CONTEXT)
-			else /* Apfloat, etc. */ -> this.toString().parseDecimal()
-		}
+fun Number.toDecimal(mathContext: MathContext = DEFAULT_CONTEXT): BigDecimal =
+	when(this) {
+		is BigDecimal -> this
+		is Int -> this.toBigDecimal(mathContext = mathContext)
+		is Byte -> this.toInt().toBigDecimal(mathContext = mathContext)
+		is Long -> this.toBigDecimal(mathContext = mathContext)
+		is Double -> this.toBigDecimal(mathContext = mathContext)
+		is BigInteger -> this.toBigDecimal(mathContext = mathContext)
+		is Apint -> BigDecimal(this.toBigInteger(), mathContext)
+		else /* Apfloat, etc. */ -> this.toString().parseDecimal(mathContext = mathContext)
+	}
 
 // covers String, etc.
-fun CharSequence.parseDecimal(): BigDecimal =
-		BigDecimal(this.toString(), DEFAULT_CONTEXT)
+fun CharSequence.parseDecimal(mathContext: MathContext = DEFAULT_CONTEXT): BigDecimal =
+	BigDecimal(this.toString(), mathContext)
 
 /**
  * for difference between scale (decimals) and precision (significance), see
@@ -168,21 +161,21 @@ fun CharSequence.parseDecimal(): BigDecimal =
  * rounding mode
  * @see BigDecimal.setScale
  */
-fun Number.scale(scale: Int): BigDecimal =
-		this.toDecimal().setScale(scale, DEFAULT_CONTEXT.roundingMode)
+fun Number.scale(scale: Int, mathContext: MathContext = DEFAULT_CONTEXT): BigDecimal =
+		this.toDecimal().setScale(scale, mathContext.roundingMode)
 
-fun Number.round(): BigInteger =
-		this.scale(0).toBigIntegerExact()
+fun Number.round(mathContext: MathContext = DEFAULT_CONTEXT): BigInteger =
+		this.scale(0, mathContext).toBigIntegerExact()
 
 /**
  * @return the rounded [Int] value
  * @see BigDecimal.setScale
  */
 @Throws(ArithmeticException::class)
-fun Number.roundToInt(): Int =
+fun Number.roundToInt(mathContext: MathContext = DEFAULT_CONTEXT): Int =
 		when (this) {
 			is Int, is Short, is Byte -> this.toInt()
-			else -> this.round().intValueExact()
+			else -> this.round(mathContext).intValueExact()
 		}
 
 /**
@@ -190,18 +183,17 @@ fun Number.roundToInt(): Int =
  * @see BigDecimal.setScale
  */
 @Throws(ArithmeticException::class)
-fun Number.roundToLong(): Long =
+fun Number.roundToLong(mathContext: MathContext = DEFAULT_CONTEXT): Long =
 		when (this) {
 			is Long, is Int, is Short, is Byte -> this.toLong()
-			else -> this.round().longValueExact()
+			else -> this.round(mathContext).longValueExact()
 		}
 
 /**
- * Binary (information) entropy
+ * [Binary (information) entropy](https://www.wikiwand.com/en/Binary_entropy_function)
  *
- * @param p(x)
- * @return H(X) = -SUM_x p(x) * log_2 p(x)
- * @see https://www.wikiwand.com/en/Binary_entropy_function
+ * @param probabilities p_i(x)
+ * @return H(X) = -SUM_i p(x) * log_2 p(x)
  */
 fun binaryEntropy(vararg probabilities: Apfloat): Apfloat =
 	Apfloat.ZERO.subtract(probabilities
@@ -209,30 +201,34 @@ fun binaryEntropy(vararg probabilities: Apfloat): Apfloat =
 			.map { it.multiply(ApfloatMath.log(it, TWO)) }
 			.reduce(Apfloat::add))
 
+/**
+ * [Binary (information) entropy](https://www.wikiwand.com/en/Binary_entropy_function)
+ *
+ * @param probabilities p_i(x)
+ * @return H(X) = -SUM_i p(x) * log_2 p(x)
+ */
 fun binaryEntropy(vararg probabilities: Number): BigDecimal =
 	BigDecimal.ZERO.subtract(probabilities
-			.filter { it != BigDecimal.ZERO}
+			.filter { it != BigDecimal.ZERO }
 			.map { it.toApfloat() }
 			.map { it.multiply(ApfloatMath.log(it, TWO)) }
 			.map { it.toDecimal() }
 			.reduce(BigDecimal::add))
 
 /**
- * Binary (information) entropy of Bernoulli process (coin flip: p v. 1-p)
+ * [Binary (information) entropy](https://www.wikiwand.com/en/Binary_entropy_function)
+ * of Bernoulli process (coin flip: p v. 1-p)
  *
- * @param p(x)
  * @return H(X) = -SUM_x p(x) * log_2 p(x)
- * @see https://www.wikiwand.com/en/Binary_entropy_function
  */
 fun Apfloat.binaryEntropy(): Apfloat =
 	binaryEntropy(this, Apfloat.ONE.subtract(this))
 
 /**
- * Binary (information) entropy of bernoulli process (coin flip: p v. 1-p)
+ * [Binary (information) entropy](https://www.wikiwand.com/en/Binary_entropy_function)
+ * of bernoulli process (coin flip: p v. 1-p)
  *
- * @param p(x)
  * @return H(X) = -SUM_x p(x) * log_2 p(x)
- * @see https://www.wikiwand.com/en/Binary_entropy_function
  */
 fun Number.binaryEntropy(): BigDecimal =
 	binaryEntropy(this.toApfloat()).toDecimal()
@@ -260,6 +256,12 @@ fun Number.toDegrees(): BigDecimal =
 		}
 
 /**
+ * @return the [BigDecimal] opposite with [DEFAULT_CONTEXT] precision
+ */
+fun Number.opposite(): BigDecimal =
+	BigDecimal.ZERO.subtract(this.toDecimal(), DEFAULT_CONTEXT)
+
+/**
  * @param subtrahend
  * @return the [BigDecimal] subtraction with [DEFAULT_CONTEXT] precision
  */
@@ -270,7 +272,7 @@ fun Number.subtract(subtrahend: Number): BigDecimal =
  * @param augend
  * @return the [BigDecimal] addition with [DEFAULT_CONTEXT] precision
  */
-fun Number.addTo(augend: Number): BigDecimal =
+fun Number.add(augend: Number): BigDecimal =
 		this.toDecimal().add(augend.toDecimal(), DEFAULT_CONTEXT)
 
 /**
@@ -361,13 +363,13 @@ fun Number.pow(exponent: Int): BigDecimal =
 		}
 
 /**
- * @param posix the POSIX [ZonedDateTime] time stamp (seconds + nanos)
+ * convert the POSIX [ZonedDateTime] time stamp (seconds + nanos)
  * @return the rounded milliseconds
  */
 fun ZonedDateTime.roundToMillis(): BigInteger =
 		this.second
 				.multiplyBy(KILO)
-				.addTo(this.nano.divideBy(MEGA))
+				.add(this.nano.divideBy(MEGA))
 				.round()
 
 fun Long.factorial(): BigInteger =

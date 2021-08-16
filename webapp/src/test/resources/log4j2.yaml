@@ -1,5 +1,5 @@
 Configuration:
-  status: warn
+  status: info
   Properties:
     property:
       - name: "filters"
@@ -14,7 +14,7 @@ Configuration:
 
   Loggers:
     Root:
-      level: debug
+      level: trace
       AppenderRef:
         ref: STDOUT
 

@@ -1,5 +1,5 @@
 Configuration:
-  status: warn
+  status: info
   Properties:
     property:
       - name: "filters"

@@ -1,34 +1,251 @@
 package io.smetweb.math
 
-import org.ejml.simple.SimpleMatrix
-import org.ujmp.core.DenseMatrix
+import io.reactivex.rxjava3.core.Flowable
+import io.reactivex.rxjava3.kotlin.toFlowable
+import kotlinx.coroutines.flow.*
 import org.ujmp.core.Matrix
 import org.ujmp.core.SparseMatrix
-import org.ujmp.core.enums.ValueType
+import org.ujmp.core.bigdecimalmatrix.impl.DefaultSparseBigDecimalMatrix
+import org.ujmp.core.calculation.Calculation.Ret
+import java.math.BigDecimal
+import java.util.*
+import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.atomic.AtomicReference
+import java.util.stream.Stream
+import java.util.stream.StreamSupport
 
-//val mat: SimpleMatrix =
+const val PARALLEL = true
 
-private fun verifySize(vararg size: Long): LongArray {
-    require(size.isNotEmpty()) { "Provide at least 1 dimension" }
-    return if (size.size == 1) longArrayOf(size[0], 1) else size
+/**
+ * FIXME work-around, see [UJMP issue #22](https://github.com/ujmp/universal-java-matrix-package/issues/22)
+ *
+ * @param source the matrix to traverse
+ * @param all whether to return all coordinates, or just the sparse ones
+ * @return a [Iterable] coordinate supplier for parallel traversal
+ */
+fun Matrix.coordinates2D(all: Boolean = false, source: Matrix = this): Iterable<LongArray> {
+    if(!all && this is SparseMatrix)
+        return availableCoordinates() // beware of unsafe writing in the underlying HashMap of sparse matrices!
+
+    // thread-safe iterator for DenseMatrix type
+    return Iterable {
+        object : Iterator<LongArray> {
+
+            private var cols: Long = source.size[1]
+            private var cells: Long = cols * source.size[0]
+            private var current = AtomicLong(0L)
+
+            override fun hasNext(): Boolean =
+                current.get() < cells
+
+            override fun next(): LongArray {
+                val i = current.getAndIncrement()
+                val row = i / cols
+                val col = i % cols
+                return longArrayOf(row, col)
+            }
+        }
+    }
 }
 
-fun zeros(valueType: ValueType = ValueType.DOUBLE, vararg size: Long): DenseMatrix =
-        Matrix.Factory.zeros(valueType, *verifySize(*size))
+fun Matrix.coordinatesStream(
+    all: Boolean = false,
+    parallel: Boolean = PARALLEL
+): Stream<LongArray> {
+    val coords = coordinates2D(all = all)
+    val spliterator: Spliterator<LongArray> =
+        Spliterators.spliterator(coords.iterator(), rowCount * columnCount, Spliterator.SIZED xor Spliterator.SUBSIZED)
+    return StreamSupport.stream(spliterator, parallel)
+}
 
-fun sparse(valueType: ValueType = ValueType.BIGDECIMAL, vararg size: Long): SparseMatrix =
-        Matrix.Factory.sparse(valueType, *verifySize(*size))
+fun Matrix.coordinatesFlow(
+    all: Boolean = false,
+    parallel: Boolean = PARALLEL
+): Flow<LongArray> {
+    val coordinateFlow = coordinates2D(all = all).asFlow()
+    return when (parallel) {
+        true -> coordinateFlow.buffer()
+        else -> coordinateFlow
+    }
+}
 
-fun scalar(value: Any): Matrix =
-        when(value) {
-            is CharSequence, is CharArray -> Matrix.Factory.linkToValue(value.toString())
-            is Int -> Matrix.Factory.linkToValue(value)
-            is Long -> Matrix.Factory.linkToValue(value)
-            is Float -> Matrix.Factory.linkToValue(value)
-            is Double -> Matrix.Factory.linkToValue(value)
-            is Boolean -> Matrix.Factory.linkToValue(value)
-            is Char -> Matrix.Factory.linkToValue(value)
-            is Short -> Matrix.Factory.linkToValue(value)
-            is Byte -> Matrix.Factory.linkToValue(value)
-            else -> Matrix.Factory.linkToValue(value)
+fun Matrix.coordinatesFlowable(
+    all: Boolean = false
+): Flowable<LongArray> = coordinates2D(all = all).toFlowable()
+
+fun <M: Matrix> M.forEach(
+    all: Boolean = false,
+    parallel: Boolean = PARALLEL,
+    getter: (LongArray) -> Any? = { x -> getAsObject(*x) },
+    visitor: (LongArray, Any?) -> Unit
+): M {
+    coordinatesStream(all = all, parallel = parallel)
+        .forEach { x: LongArray ->
+            visitor(x, getter(x))
         }
+    return this
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <M: Matrix, T: Any?> M.compute(
+    all: Boolean = true,
+    parallel: Boolean = PARALLEL,
+    getter: (LongArray) -> T = { x -> getAsObject(*x) as T },
+    setter: (T, LongArray) -> Unit = ::setAsObject,
+    vararg coords: Long,
+    transform: (T, LongArray) -> T,
+): M {
+    if (coords.isEmpty()) {
+        val stream = coordinatesStream(all = all, parallel = parallel)
+        if (parallel && this is SparseMatrix) {
+            // Sparse matrices with underlying HashMap are not thread-safe, must synchronize parallel write-ops
+            stream.forEach { x: LongArray ->
+                val result = transform(getter(x), x)
+                synchronized(this) {
+                    setter(result, x)
+                }
+            }
+        } else {
+            // serial operations always thread-safe, as well as parallel write-ops on array-based matrices
+            stream.forEach { x: LongArray ->
+                setter(transform(getter(x), x), x)
+            }
+        }
+    } else {
+        setter( transform( getter(coords), coords), coords)
+    }
+    return this
+}
+
+fun Matrix.sum(parallel: Boolean = PARALLEL): BigDecimal =
+    coordinatesStream(all = false, parallel = parallel)
+        .map { getAsBigDecimal(*it) }
+        .reduce(BigDecimal::add)
+        .orElse(BigDecimal.ZERO)
+        .stripTrailingZeros()
+
+fun <T: Matrix> T.add(augend: Number, vararg coords: Long): T =
+    compute(coords = coords) { value: Any?, _ ->
+        (value as Number?)?.add(augend) ?: augend
+    }
+
+fun <M: Matrix> M.add(that: Matrix, parallel: Boolean = PARALLEL): M =
+    compute(parallel = parallel) { value: Any?, coords: LongArray ->
+        val augend = that.getAsObject(*coords) as Number
+        when(value) {
+            is Number -> value.add(augend)
+            else -> augend
+        }
+    }
+
+fun <M: Matrix> M.subtract(subtrahend: Number, vararg coords: Long): M =
+    add(augend = subtrahend.opposite(), coords = coords)
+
+fun <T: Matrix> T.subtract(that: Matrix, parallel: Boolean = PARALLEL): T =
+    compute(parallel = parallel) { value: Any?, coords: LongArray ->
+        val subtrahend = that.getAsObject(*coords) as Number
+        (value as Number?)?.subtract(subtrahend) ?: subtrahend.opposite()
+    }
+
+fun <T: Matrix> T.multiply(multiplicand: Number, vararg coords: Long): T =
+    compute(coords = coords) { value: Any?, _ ->
+        (value as Number?)?.multiplyBy(multiplicand) ?: BigDecimal.ZERO
+    }
+
+fun Matrix.get(vararg coords: Long): BigDecimal =
+    getAsBigDecimal(*coords)
+
+fun <T: Matrix> T.put(value: Number, vararg coords: Long): T {
+    val decimal = value.toDecimal()
+    setAsBigDecimal(decimal, *coords)
+    return this
+}
+
+fun <T: Matrix> T.put(value: Any, vararg coords: Long): T {
+    setAsObject(value, *coords)
+    return this
+}
+
+fun <T: Matrix, V: Any> T.put(values: Stream<V>, vararg offset: Long): T {
+    val i = AtomicReference(longArrayOf(*offset))
+    values.forEach { value: V ->
+        val coords = i.getAndUpdate { x: LongArray ->
+            when (x.size) {
+                1 -> longArrayOf(x[0] + 1)
+                2 -> longArrayOf(x[0], x[1] + 1)
+                else -> longArrayOf(1)
+            }
+        }
+        put(value, *coords)
+    }
+    return this
+}
+
+fun <T: Matrix, E: Enum<E>, V: Number> T.put(values: Map<E, V>, vararg offset: Long): T {
+    val i = AtomicReference(when (offset.isEmpty()) {
+        false -> longArrayOf(*offset)
+        else -> (1..dimensionCount).map { 0L }.toLongArray()
+    })
+    values.forEach { (key: E, value: V) ->
+        val coords = i.getAndUpdate { x: LongArray ->
+            when (dimensionCount) {
+                1 -> longArrayOf(x[0] + 1)
+                2 -> longArrayOf(x[0], x[1] + 1)
+                else -> longArrayOf(1)
+            }
+        }
+        when (dimensionCount) {
+            1 -> setRowLabel(key.ordinal.toLong(), key.name)
+            else -> setColumnLabel(key.ordinal.toLong(), key.name)
+        }
+        setAsBigDecimal(value.toDecimal(), *coords)
+    }
+    return this
+}
+
+fun <T: Matrix> T.put(values: Matrix, vararg offset: Long): T {
+    val x: LongArray = verifyBounds(coords = offset, orOrigin = true)!!
+    require(!(x[0] + values.rowCount > size[0]
+            || x[1] + values.columnCount > size[1])) {
+        ("Does not fit at offset: " + values.size.contentToString() + " + "
+                + x.contentToString() + " >= " + size.contentToString())
+    }
+    setContent(Ret.ORIG, values, *x)
+    return this
+}
+
+fun Matrix.verifyBounds(vararg coords: Long, orOrigin: Boolean = false): LongArray? {
+    val dimCount = dimensionCount
+
+    // assume null -> origin (eg. scalar)
+    if (coords.isEmpty())
+        return if (orOrigin)
+            LongArray(dimensionCount)
+        else
+            null
+    if (coords.size != dimensionCount) {
+        if (coords.size == 1) // convert vector: 1D -> 2D or multiD
+        {
+            return if (isRowVector)
+            // try vertical
+                verifyBounds(coords[0], 0)
+            else if (isColumnVector)
+            // try horizontal
+                verifyBounds(0, coords[0])
+            else {
+                // try diagonal
+                val diagonal = LongArray(dimensionCount)
+                Arrays.fill(diagonal, coords[0])
+                verifyBounds(*diagonal)
+            }
+        }
+        throw IndexOutOfBoundsException(
+            "Dimensions ${coords.contentToString()}.length <> $dimCount")
+    }
+    for (dim in 0 until dimensionCount)
+        if (coords[dim] >= size[dim])
+            throw IndexOutOfBoundsException(
+                ("Coordinates " + coords.contentToString() + " out of bounds: " + Arrays.toString(size))
+            )
+    return coords
+}

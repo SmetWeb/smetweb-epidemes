@@ -11,7 +11,7 @@ buildscript {
 	val spotBugsVersion: String by System.getProperties()
 
 	repositories {
-		jcenter()
+		mavenCentral()
 	}
 
 	// gradle/build classpath, see https://docs.gradle.org/current/userguide/tutorial_using_tasks.html#sec:build_script_external_dependencies
@@ -57,7 +57,6 @@ allprojects {
 	version = "0.0.1-SNAPSHOT"
 
 	repositories {
-		jcenter()
 		mavenCentral()
 		maven(url = "https://simulation.tudelft.nl/maven")
 		maven(url = "https://djutils.org/maven")

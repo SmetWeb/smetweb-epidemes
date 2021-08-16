@@ -2,20 +2,14 @@ package io.smetweb.math
 
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Observer
-import java.util.function.BiConsumer
-import java.util.function.Function
 import java.util.function.Supplier
-import java.util.function.UnaryOperator
-import java.util.stream.Collectors
-import java.util.stream.Stream
-import java.util.stream.StreamSupport
 
 /**
  * an observable collection, mapping keys to tuples of property-value pairs and emitting [Change] operations
  *
- * TODO compare with [Apache Kafka's Stream API](https://docs.confluent.io/current/streams/javadocs/index.html)
+ * TODO compare with [Apache Kafka Stream API](https://kafka.apache.org/28/documentation/streams/)
  */
-interface TableRx<T: TableRx.Tuple> {
+interface Table<T: Table.Tuple> {
 
     /** return an [Observable] stream of [Change]s  */
     fun changes(): Observable<Change<*>>
@@ -43,7 +37,7 @@ interface TableRx<T: TableRx.Tuple> {
     }
 
     /**
-     * [Change] notifies modifications made to e.g. a [Property], [Tuple], [TableRx] or their sub-types
+     * [Change] notifies modifications made to e.g. a [Property], [Tuple], [Table] or their sub-types
      */
     data class Change<T>(
             val operation: Operation,
@@ -93,10 +87,10 @@ interface TableRx<T: TableRx.Tuple> {
         }
 
         fun toMap(vararg properties: Class<out Property<*>>): Map<Class<out Property<*>>, Any?> =
-                if (properties.isEmpty()) emptyMap() else properties.map { it to this.getter(it) }.toMap()
+                if (properties.isEmpty()) emptyMap() else properties.associateWith { this.getter(it) }
 
         fun toMap(properties: Iterable<Class<out Property<*>>>): Map<Class<out Property<*>>, Any?> =
-                properties.map { it to this.getter(it) }.toMap()
+            properties.associateWith { this.getter(it) }
 
         fun <V> put(property: Property<V>): V? =
                 getAndUpdate(property.javaClass) { property.get() }
