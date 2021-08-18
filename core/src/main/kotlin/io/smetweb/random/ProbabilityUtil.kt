@@ -83,8 +83,11 @@ fun PseudoRandom.uniform(min: Double, max: Double): ProbabilityDistribution<Doub
     return this.toDistribution { it.nextDouble() * range + min }
 }
 
-fun PseudoRandom.gaussian(mean: Number, stDev: Number): ProbabilityDistribution<Double> =
-        this.toDistribution { it.nextGaussian() * stDev.toDouble() + mean.toDouble() }
+fun PseudoRandom.gaussian(mean: Number, stDev: Number): ProbabilityDistribution<Double> {
+    val meanDouble = mean.toDouble()
+    val stDevDouble = stDev.toDouble()
+    return this.toDistribution { it.nextGaussian() * stDevDouble + meanDouble }
+}
 
 fun PseudoRandom.triangular(min: Number, mode: Number, max: Number): ProbabilityDistribution<BigDecimal> {
     val modeBD: BigDecimal = mode.toDecimal()
@@ -108,12 +111,12 @@ fun <V: Any> PseudoRandom.categorical(pmf: Iterable<Pair<V, BigDecimal>>): Proba
     // determine sum of weights
     val sum = AtomicReference(BigDecimal.ZERO)
     val map = pmf
-            .filter {
-                val sig = it.second.signum()
-                require(sig >= 0) { "Negative weight not allowed, value: $it" }
+            .filter { (value, weight) ->
+                val sig = weight.signum()
+                require(sig >= 0) { "Negative weight not allowed, value: $value" }
                 if(sig == 0)
                     return@filter false
-                sum.updateAndGet { s -> s.add(it.second) }
+                sum.updateAndGet { s -> s.add(weight) }
                 true
             }
             .toMap(mutableMapOf())
