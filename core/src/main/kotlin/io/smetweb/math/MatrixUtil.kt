@@ -5,7 +5,6 @@ import io.reactivex.rxjava3.kotlin.toFlowable
 import kotlinx.coroutines.flow.*
 import org.ujmp.core.Matrix
 import org.ujmp.core.SparseMatrix
-import org.ujmp.core.bigdecimalmatrix.impl.DefaultSparseBigDecimalMatrix
 import org.ujmp.core.calculation.Calculation.Ret
 import java.math.BigDecimal
 import java.util.*
