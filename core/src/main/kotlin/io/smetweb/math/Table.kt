@@ -1,18 +1,91 @@
 package io.smetweb.math
 
 import io.reactivex.rxjava3.core.Observable
-import io.reactivex.rxjava3.core.Observer
-import java.util.function.Supplier
+import io.reactivex.rxjava3.subjects.PublishSubject
+import io.reactivex.rxjava3.subjects.Subject
+import io.smetweb.math.Table.Change
+import java.util.*
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * an observable collection, mapping keys to tuples of property-value pairs and emitting [Change] operations
  *
  * TODO compare with [Apache Kafka Stream API](https://kafka.apache.org/28/documentation/streams/)
  */
-interface Table<T: Table.Tuple> {
+open class Table<PK: Any>(
+    private val inserter: () -> Tuple<PK>,
+    private val remover: (PK) -> Tuple<PK>?,
+    private val indexer: () -> Iterable<PK>,
+    private val retriever: (PK) -> Tuple<PK>?,
+    private val counter: () -> Long,
+    private val printer: () -> String,
+    private val cleaner: () -> Unit,
+    private val emitter: Subject<Change> = PublishSubject.create()
+) {
+
+    val keys: Iterable<PK>
+        get() = this.indexer()
+
+    val size: Long
+        get() = this.counter()
+
+    fun clear() =
+        this.cleaner()
 
     /** return an [Observable] stream of [Change]s  */
-    fun changes(): Observable<Change<*>>
+    val changes: Observable<Change>
+        get() = this.emitter
+
+    override fun toString(): String =
+        this.printer()
+
+    fun select(key: PK): Tuple<PK>? =
+        this.retriever(key)
+
+    fun insert(values: Map<Class<out Property<*>>, Any?>): PK {
+        val tuple: Tuple<PK> = this.inserter()
+        tuple.set(values)
+            .map { Change(Operation.CREATE, tuple.key, it.first, it.second) }
+            .subscribe(this.emitter::onNext, this.emitter::onError)
+        return tuple.key
+    }
+
+    fun insert(values: Iterable<Property<*>>): PK =
+        insert(values.associate { Pair(it.javaClass, it.get()) })
+
+    fun insert(vararg values: Property<*>): PK =
+        insert(values.associate { Pair(it.javaClass, it.get()) })
+
+    fun update(key: PK, values: Map<Class<out Property<*>>, Any?>) =
+        this.retriever(key)!!.set(values)
+            .map { Change(Operation.UPDATE, key, it.first, it.second) }
+            .subscribe(this.emitter::onNext, this.emitter::onError)
+
+    fun update(key: PK, values: Iterable<Property<*>>) =
+        update(key, values.associate { Pair(it.javaClass, it.get()) })
+
+    fun update(key: PK, vararg values: Property<*>) =
+        update(key, values.associate { Pair(it.javaClass, it.get()) })
+
+    fun upsert(key: PK, values: Map<Class<out Property<*>>, Any?>): PK =
+        this.retriever(key)?.let { tuple ->
+            tuple.set(values)
+                .map { Change(Operation.UPDATE, tuple.key, it.first, it.second) }
+                .subscribe(this.emitter::onNext, this.emitter::onError)
+            tuple.key
+        } ?: insert(values)
+
+    fun upsert(key: PK, values: Iterable<Property<*>>): PK =
+        upsert(key, values.associate { Pair(it.javaClass, it.get()) })
+
+    fun upsert(key: PK, vararg values: Property<*>): PK =
+        upsert(key, values.associate { Pair(it.javaClass, it.get()) })
+
+    fun delete(key: PK): Boolean =
+        select(key)?.let { old ->
+            this.emitter.onNext(Change(Operation.DELETE, key, old.javaClass, Pair(old, null)))
+            this.remover(key)
+        } != null
 
     enum class Operation {
         CREATE, READ, UPDATE, DELETE
@@ -23,115 +96,140 @@ interface Table<T: Table.Tuple> {
      *
      * @param <T> the value return type
     </T> */
-    interface Property<T>: Supplier<T?> {
-
-        override fun get(): T?
-
-        fun set(newValue: T)
-
-        @Suppress("UNCHECKED_CAST")
-        fun <THIS: Property<T>> with(newValue: T): THIS {
-            set(newValue)
-            return this as THIS
-        }
-    }
+    open class Property<T>(value: T? = null): AtomicReference<T>(value)
 
     /**
      * [Change] notifies modifications made to e.g. a [Property], [Tuple], [Table] or their sub-types
      */
-    data class Change<T>(
-            val operation: Operation,
-            val sourceRef: Any?,
-            val valueType: Class<*>,
-            val update: Pair<T?, T?>
+    data class Change(
+        val operation: Operation,
+        val sourceRef: Any?,
+        val valueType: Class<*>,
+        val update: Pair<Any?, Any?>
     ) {
         private val string: String by lazy {
             "$operation ${sourceRef?.let{"@it "}}${valueType.simpleName}: $update"
         }
 
-        override fun toString(): String = this.string
+        override fun toString(): String = string
     }
 
     /**
-     * [Tuple] represents a [Property] set from a row in a
-     * [Table]
+     * [Tuple] represents a [Property] set from a row in a [Table]
      */
-    open class Tuple(
-            val key: Any,
-            val properties: List<Property<*>>,
-            private val getter: (Class<out Property<*>>) -> Any?,
-            private val setter: (Class<out Property<*>>, Any?) -> Unit,
-            private val stringifier: () -> String,
-            private var observer: Observer<Change<*>>? = null
+    open class Tuple<PK: Any>(
+        open val key: PK,
+        open val properties: List<Class<out Property<*>>>,
+        private val getter: (Class<out Property<*>>) -> Any?,
+        private val setter: (Class<out Property<*>>, Any?) -> Unit,
+        private val stringifier: () -> String = { stringifyProperties(properties, getter) }
     ) {
 
         override fun toString(): String =
-                this.stringifier()
+            stringifier()
+
+        fun <V> set(property: Property<V>) =
+            set(property.javaClass, property.get())
+
+        fun set(vararg properties: Property<*>) =
+            properties.forEach { set(it) }
+
+        fun set(newValues: Map<Class<out Property<*>>, Any?>): Observable<Pair<Class<out Property<*>>, Pair<Any?, Any?>>> =
+            Observable.fromIterable(newValues.entries)
+                .mapOptional { (propertyType, newValue) ->
+                    set(propertyType, newValue)?.let {
+                        Optional.of(Pair(propertyType, it))
+                    } ?: Optional.empty()
+                }
+
+        @Suppress("UNCHECKED_CAST")
+        operator fun set(propertyType: Class<out Property<*>>, newValue: Any?): Pair<Any?, Any?>? =
+            propertyType.let {
+                if(properties.contains(it)) {
+                    val oldValue = getter(it)
+                    if(oldValue !== newValue) {
+                        setter(it, newValue)
+                        Pair(oldValue, newValue)
+                    } else
+                        null
+                } else
+                    throw IllegalStateException(
+                        "Property $this not allowed, only: $properties")
+            }
 
         @Suppress("UNCHECKED_CAST")
         operator fun <V> get(key: Class<out Property<V>>): V? =
-                this.getter(key) as V?
+            getter(key) as V?
 
-        operator fun <V> set(property: Class<out Property<V>>, value: V?) =
-                this.setter(property, value)
+        fun toMap(vararg property: Class<out Property<*>>): Map<Class<out Property<*>>, Any?> =
+                if (property.isEmpty())
+                    emptyMap()
+                else
+                    property.associateWith { this.getter(it) }
 
-        fun <V> set(property: Property<V>) =
-                set(property.javaClass, property.get())
-
-        fun set(vararg properties: Property<*>) {
-            if (properties.isNotEmpty()) {
-                for (element in properties) {
-                    set(element)
-                }
-            }
-        }
-
-        fun toMap(vararg properties: Class<out Property<*>>): Map<Class<out Property<*>>, Any?> =
-                if (properties.isEmpty()) emptyMap() else properties.associateWith { this.getter(it) }
-
-        fun toMap(properties: Iterable<Class<out Property<*>>>): Map<Class<out Property<*>>, Any?> =
-            properties.associateWith { this.getter(it) }
+        fun toMap(propertyFilter: Iterable<Class<out Property<*>>> = this.properties): Map<Class<out Property<*>>, Any?> =
+            propertyFilter.associateWith { getter(it) }
 
         fun <V> put(property: Property<V>): V? =
                 getAndUpdate(property.javaClass) { property.get() }
 
-        private fun <V> update(propertyType: Class<out Property<V>>, op: (V?) -> V?): Pair<V?, V?> {
+        private fun <V> update(propertyType: Class<out Property<V>>, op: (V?) -> V?): Change? {
             val oldValue: V? = get(propertyType)
             val newValue: V? = op(oldValue)
-            val result = Pair(oldValue, newValue)
-            if (newValue !== oldValue) {
-                set(propertyType, newValue)
-                this.observer?.onNext(
-                        Change(Operation.UPDATE, this.key, propertyType, result))
+            return set(propertyType, newValue)?.let {
+                Change(Operation.UPDATE, this.key, propertyType, it)
             }
-            return result
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun <V> getAndUpdate(propertyType: Class<Property<V>>, op: (V?) -> V?): V? =
-                update(propertyType, op).first
+                update(propertyType, op)?.update?.first as V?
 
+        @Suppress("UNCHECKED_CAST")
         fun <V> updateAndGet(propertyType: Class<out Property<V>>, op: (V?) -> V?): V? =
-                update(propertyType, op).second
+                update(propertyType, op)?.update?.second as V?
 
-//        fun <P : Property<W>, W> override(property: Class<P>, override: W?): Tuple? {
-//            val self = this
-//            return object : Tuple() {
-//                override fun <K : Property<V>, V> get(key: Class<K>): V? {
-//                    return if (key == property) override as V? else super.get(key)
-//                }
-//
-//                override fun properties(): MutableList<Class<out Property>>? {
-//                    return self.properties()
-//                }
-//            }.reset(key, emitter, getter, setter,
-//                    stringifier)
-//        }
+        fun <P: Property<W>, W> override(property: Class<P>, override: W?): Tuple<PK> =
+            Tuple(
+                key = key,
+                properties = properties,
+                getter = { key: Class<out Property<*>> -> if (key == property) override else getter(key) },
+                setter = setter,
+                stringifier = stringifier)
 
         companion object {
+
             private const val start = '['
             private const val end = ']'
             private const val eq = ':'
             private const val delim: String = "; "
+
+            @JvmStatic
+            private fun stringifyProperty(
+                i: Int,
+                properties: List<Class<out Property<*>>>,
+                getter: (Class<out Property<*>>) -> Any?
+            ): String = buildString {
+                append(properties[i].simpleName)
+                append(eq)
+                append(getter(properties[i]) ?: "")
+            }
+
+            @JvmStatic
+            private fun stringifyProperties(
+                properties: List<Class<out Property<*>>>,
+                getter: (Class<out Property<*>>) -> Any?
+            ): String = buildString {
+                append(start)
+                if(properties.isNotEmpty()) {
+                    append(stringifyProperty(0, properties, getter))
+                    (1 until properties.size).forEach { i ->
+                        append(delim)
+                        append(stringifyProperty(i, properties, getter))
+                    }
+                }
+                append(end)
+            }
         }
     }
 
