@@ -11,7 +11,7 @@ class MatrixTest {
     @Test
     fun `test summation`() {
         val m =
-            sparseMatrix {
+            buildSparseMatrix {
                 valueType = ValueType.BIGDECIMAL
                 size = 5 by 2000
             }
@@ -70,7 +70,7 @@ class MatrixTest {
 
         // initialize population structure
         val rates =
-            sparseMatrix {
+            buildSparseMatrix {
                 size = i_n by i_c
                 label = "Rates"
                 label(i_S, "S", "dS")
@@ -88,7 +88,7 @@ class MatrixTest {
 
         // row-vector of population's compartments
         val population: Matrix =
-            sparseMatrix {
+            buildSparseMatrix {
                 size = 1 by i_c
                 label = "Population"
             }
@@ -96,7 +96,7 @@ class MatrixTest {
 
         // row-vector for updating SIR's ordinal differential equation (ODE) terms
         val terms: Matrix =
-            sparseMatrix {
+            buildSparseMatrix {
                 size = 1 by i_n
                 label = "Terms"
                 label(i_SI, "SI/N")
@@ -109,7 +109,7 @@ class MatrixTest {
         println("reproduction rate (R_0): $R_0, recovery period: $recovery, beta: $beta, gamma: $gamma, dt: $dt_ratio, population (N): $total, M_rate:\n$rates")
 
         val results: Matrix =
-            sparseMatrix {
+            buildSparseMatrix {
                 valueType = ValueType.BIGDECIMAL
                 size = T by 2 * i_c
                 label = "Forw.Euler"

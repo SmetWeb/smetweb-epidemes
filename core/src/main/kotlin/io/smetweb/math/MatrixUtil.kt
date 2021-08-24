@@ -7,6 +7,7 @@ import org.ujmp.core.Matrix
 import org.ujmp.core.SparseMatrix
 import org.ujmp.core.calculation.Calculation.Ret
 import java.math.BigDecimal
+import java.math.BigInteger
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
@@ -153,6 +154,59 @@ fun <T: Matrix> T.multiply(multiplicand: Number, vararg coords: Long): T =
 
 fun Matrix.get(vararg coords: Long): BigDecimal =
     getAsBigDecimal(*coords)
+
+/** offset used for conversion of Enum ordinals, to avoid `zero` values which are stored as `null` */
+private const val ENUM_ORDINAL_OFFSET = 1
+
+@Suppress("UNCHECKED_CAST")
+fun <T> Matrix.getNumericOrEnum(returnType: Class<T>, vararg coords: Long): T? {
+    val value: Any = getAsObject(*coords)
+        ?: return when (returnType::javaClass) {
+            // Matrix stores ZERO or FALSE as (Number)0 or (Object)null
+            BigDecimal::javaClass -> BigDecimal.ZERO
+            Double::javaClass -> java.lang.Double.valueOf(0.0)
+            Float::javaClass -> java.lang.Float.valueOf(0f)
+            Long::javaClass -> java.lang.Long.valueOf(0L)
+            Int::javaClass -> Integer.valueOf(0)
+            Boolean::javaClass -> false
+            BigInteger::javaClass -> BigInteger.ZERO
+            // FIXME arbitrary return value, should not be necessary...
+            // Object::javaClass -> OBJECT_NULL_DEFAULT = java.lang.Long.valueOf(0)
+            else -> null // if( returnType.isEnum ) return returnType.getEnumConstants()[0]
+        } as T?
+
+    val valueType: Class<*> = value.javaClass
+    if (returnType.isAssignableFrom(valueType))
+        return value as T
+
+    // check/convert number type values if necessary
+    if (value is Number) {
+        val decimalValue: BigDecimal = value.toDecimal()
+        return if (returnType.isEnum)
+            returnType.enumConstants[decimalValue.toInt() - ENUM_ORDINAL_OFFSET]
+        else when (returnType) {
+            BigDecimal::class.java -> decimalValue
+            Double::class.java, java.lang.Double::class.java -> java.lang.Double.valueOf(decimalValue.toDouble())
+            Float::class.java, java.lang.Float::class.java -> java.lang.Float.valueOf(decimalValue.toFloat())
+            Long::class.java, java.lang.Long::class.java -> java.lang.Long.valueOf(decimalValue.longValueExact())
+            Int::class.java, java.lang.Integer::class.java -> Integer.valueOf(decimalValue.intValueExact())
+            Byte::class.java, java.lang.Byte::class.java -> java.lang.Byte.valueOf(decimalValue.byteValueExact())
+            Boolean::class.java, java.lang.Boolean::class.java -> java.lang.Boolean.valueOf(decimalValue.signum() == 0)
+            Char::class.java, java.lang.Character::class.java -> java.lang.Character.valueOf(decimalValue.toChar())
+            BigInteger::class.java -> decimalValue.toBigInteger()
+            else -> error("Expected $returnType, got $valueType")
+        } as T
+    }
+    error ("Unable to restore $returnType from (non-numeric) type: $valueType")
+}
+
+fun Matrix.putNumericOrEnum(value: Any?, vararg coords: Long) {
+    val number: Number = when (value?.javaClass?.isEnum) {
+        true -> ENUM_ORDINAL_OFFSET + (value as Enum<*>).ordinal
+        false, null -> value as Number
+    }
+    setAsObject(number, *coords)
+}
 
 fun <T: Matrix> T.put(value: Number, vararg coords: Long): T {
     val decimal = value.toDecimal()

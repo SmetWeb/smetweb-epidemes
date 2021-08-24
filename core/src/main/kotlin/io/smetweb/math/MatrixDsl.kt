@@ -35,42 +35,6 @@ class MatrixBuilder {
      */
     infix fun Long.by(target: Long) = longArrayOf(this, target)
 
-    fun sparse(): SparseMatrix {
-        val matrix = Matrix.Factory.sparse(valueType, *size)
-        return build(matrix) as SparseMatrix
-    }
-
-    fun empty(): DenseMatrix {
-        val matrix = Matrix.Factory.emptyMatrix()
-        return build(matrix) as DenseMatrix
-    }
-
-    fun zeros(): DenseMatrix {
-        val matrix = Matrix.Factory.zeros(valueType, *size)
-        return build(matrix) as DenseMatrix
-    }
-
-    fun eye(): DenseMatrix {
-        val matrix = Matrix.Factory.eye(*size)
-        return build(matrix) as DenseMatrix
-    }
-
-    fun scalar(value: Any): DenseMatrix2D {
-        val matrix =  when(value) {
-            is CharSequence, is CharArray -> Matrix.Factory.linkToValue(value.toString())
-            is Int -> Matrix.Factory.linkToValue(value)
-            is Long -> Matrix.Factory.linkToValue(value)
-            is Float -> Matrix.Factory.linkToValue(value)
-            is Double -> Matrix.Factory.linkToValue(value)
-            is Boolean -> Matrix.Factory.linkToValue(value)
-            is Char -> Matrix.Factory.linkToValue(value)
-            is Short -> Matrix.Factory.linkToValue(value)
-            is Byte -> Matrix.Factory.linkToValue(value)
-            else -> Matrix.Factory.linkToValue(value)
-        }
-        return build(matrix) as DenseMatrix2D
-    }
-
     private fun build(matrix: Matrix): Matrix = matrix.let {
         it.setLabel(label)
         dimensionLabels.forEachIndexed(it::setDimensionLabel)
@@ -119,10 +83,52 @@ class MatrixBuilder {
             }
         }
     }
+
+    fun sparse(): SparseMatrix {
+        val matrix = Matrix.Factory.sparse(valueType, *size)
+        return build(matrix) as SparseMatrix
+    }
+
+    fun empty(): DenseMatrix {
+        val matrix = Matrix.Factory.emptyMatrix()
+        return build(matrix) as DenseMatrix
+    }
+
+    fun zeros(): DenseMatrix {
+        val matrix = Matrix.Factory.zeros(valueType, *size)
+        return build(matrix) as DenseMatrix
+    }
+
+    fun eye(): DenseMatrix {
+        val matrix = Matrix.Factory.eye(*size)
+        return build(matrix) as DenseMatrix
+    }
+
+    fun scalar(value: Any): DenseMatrix2D {
+        val matrix =  when(value) {
+            is CharSequence, is CharArray -> Matrix.Factory.linkToValue(value.toString())
+            is Int -> Matrix.Factory.linkToValue(value)
+            is Long -> Matrix.Factory.linkToValue(value)
+            is Float -> Matrix.Factory.linkToValue(value)
+            is Double -> Matrix.Factory.linkToValue(value)
+            is Boolean -> Matrix.Factory.linkToValue(value)
+            is Char -> Matrix.Factory.linkToValue(value)
+            is Short -> Matrix.Factory.linkToValue(value)
+            is Byte -> Matrix.Factory.linkToValue(value)
+            else -> Matrix.Factory.linkToValue(value)
+        }
+        return build(matrix) as DenseMatrix2D
+    }
 }
 
 // MatrixDsl
-fun sparseMatrix(init: MatrixBuilder.() -> Unit): SparseMatrix =
+fun buildMatrix(init: MatrixBuilder.() -> Unit): DenseMatrix =
+    MatrixBuilder().let { builder ->
+        builder.init()
+        builder.zeros()
+    }
+
+fun buildSparseMatrix(init: MatrixBuilder.() -> Unit): SparseMatrix =
     MatrixBuilder().let { builder ->
         builder.init()
         builder.sparse()
