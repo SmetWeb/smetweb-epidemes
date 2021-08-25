@@ -161,18 +161,18 @@ private const val ENUM_ORDINAL_OFFSET = 1
 @Suppress("UNCHECKED_CAST")
 fun <T> Matrix.getNumericOrEnum(returnType: Class<T>, vararg coords: Long): T? {
     val value: Any = getAsObject(*coords)
-        ?: return when (returnType::javaClass) {
+        ?: return when (returnType) {
             // Matrix stores ZERO or FALSE as (Number)0 or (Object)null
-            BigDecimal::javaClass -> BigDecimal.ZERO
-            Double::javaClass -> java.lang.Double.valueOf(0.0)
-            Float::javaClass -> java.lang.Float.valueOf(0f)
-            Long::javaClass -> java.lang.Long.valueOf(0L)
-            Int::javaClass -> Integer.valueOf(0)
-            Boolean::javaClass -> false
-            BigInteger::javaClass -> BigInteger.ZERO
-            // FIXME arbitrary return value, should not be necessary...
-            // Object::javaClass -> OBJECT_NULL_DEFAULT = java.lang.Long.valueOf(0)
-            else -> null // if( returnType.isEnum ) return returnType.getEnumConstants()[0]
+            BigDecimal::class.java -> BigDecimal.ZERO
+            Double::class.java, java.lang.Double::class.java -> java.lang.Double.valueOf(0.0)
+            Float::class.java, java.lang.Float::class.java -> java.lang.Float.valueOf(0f)
+            Long::class.java, java.lang.Long::class.java -> java.lang.Long.valueOf(0L)
+            Int::class.java, java.lang.Integer::class.java -> Integer.valueOf(0)
+            Byte::class.java, java.lang.Byte::class.java -> java.lang.Byte.valueOf(0x0)
+            Boolean::class.java, java.lang.Boolean::class.java -> false
+            Char::class.java, java.lang.Character::class.java -> Character.MIN_VALUE
+            BigInteger::class.java -> BigInteger.ZERO
+            else -> null
         } as T?
 
     val valueType: Class<*> = value.javaClass
@@ -192,7 +192,7 @@ fun <T> Matrix.getNumericOrEnum(returnType: Class<T>, vararg coords: Long): T? {
             Int::class.java, java.lang.Integer::class.java -> Integer.valueOf(decimalValue.intValueExact())
             Byte::class.java, java.lang.Byte::class.java -> java.lang.Byte.valueOf(decimalValue.byteValueExact())
             Boolean::class.java, java.lang.Boolean::class.java -> java.lang.Boolean.valueOf(decimalValue.signum() == 0)
-            Char::class.java, java.lang.Character::class.java -> java.lang.Character.valueOf(decimalValue.toChar())
+            Char::class.java, java.lang.Character::class.java -> Character.valueOf(decimalValue.toChar())
             BigInteger::class.java -> decimalValue.toBigInteger()
             else -> error("Expected $returnType, got $valueType")
         } as T
@@ -297,8 +297,7 @@ fun Matrix.verifyBounds(vararg coords: Long, orOrigin: Boolean = false): LongArr
     }
     for (dim in 0 until dimensionCount)
         if (coords[dim] >= size[dim])
-            throw IndexOutOfBoundsException(
-                ("Coordinates " + coords.contentToString() + " out of bounds: " + Arrays.toString(size))
-            )
+            throw IndexOutOfBoundsException(("Coordinates " + coords.contentToString()
+                    + " out of bounds: " + Arrays.toString(size)))
     return coords
 }

@@ -21,8 +21,11 @@ fun Type.toClass(): Class<*> =
         else -> error("Unknown type: ${this::class.java} ($this)")
     }
 
-fun Class<*>.typeArgumentsFor(genericTarget: Class<*>): List<Pair<TypeVariable<*>, Class<*>>> =
+fun Class<*>.resolveTypeArguments(genericTarget: Class<*>): List<Pair<TypeVariable<*>, Class<*>>> =
     resolveParameterizedType(genericTarget).resolveTypeArguments()
+
+fun Class<*>.typeArgumentsFor(genericTarget: Class<*>): List<Class<*>> =
+    resolveParameterizedType(genericTarget).actualTypeArguments.map { it.toClass() }
 
 inline fun <reified T: Any, S: T> T.typeArgumentsFor(genericTarget: Class<S>): List<Pair<TypeVariable<*>, Class<*>>> =
     javaClass.resolveParameterizedType(genericTarget).resolveTypeArguments()

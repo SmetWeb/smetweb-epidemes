@@ -5,6 +5,7 @@ import org.ujmp.core.DenseMatrix2D
 import org.ujmp.core.Matrix
 import org.ujmp.core.SparseMatrix
 import org.ujmp.core.enums.ValueType
+import org.ujmp.core.objectmatrix.SparseObjectMatrix2D
 
 @DslMarker
 annotation class MatrixDsl
@@ -35,7 +36,7 @@ class MatrixBuilder {
      */
     infix fun Long.by(target: Long) = longArrayOf(this, target)
 
-    private fun build(matrix: Matrix): Matrix = matrix.let {
+    fun <M: Matrix> build(matrix: M): M = matrix.let {
         it.setLabel(label)
         dimensionLabels.forEachIndexed(it::setDimensionLabel)
         (0..it.rowCount).forEach { i -> it.setRowLabel(i, rowLabeler(i)) }
@@ -84,28 +85,34 @@ class MatrixBuilder {
         }
     }
 
-    fun sparse(): SparseMatrix {
-        val matrix = Matrix.Factory.sparse(valueType, *size)
-        return build(matrix) as SparseMatrix
-    }
-
     fun empty(): DenseMatrix {
         val matrix = Matrix.Factory.emptyMatrix()
         return build(matrix) as DenseMatrix
     }
+}
 
-    fun zeros(): DenseMatrix {
-        val matrix = Matrix.Factory.zeros(valueType, *size)
-        return build(matrix) as DenseMatrix
+// MatrixDsl
+fun buildEmptyMatrix(init: MatrixBuilder.() -> Unit): DenseMatrix =
+    MatrixBuilder().let {
+        it.init()
+        it.build(Matrix.Factory.emptyMatrix())
     }
 
-    fun eye(): DenseMatrix {
-        val matrix = Matrix.Factory.eye(*size)
-        return build(matrix) as DenseMatrix
+fun buildZeroMatrix(init: MatrixBuilder.() -> Unit): DenseMatrix =
+    MatrixBuilder().let {
+        it.init()
+        it.build(Matrix.Factory.zeros(*it.size))
     }
 
-    fun scalar(value: Any): DenseMatrix2D {
-        val matrix =  when(value) {
+fun buildEyeMatrix(init: MatrixBuilder.() -> Unit): DenseMatrix =
+    MatrixBuilder().let {
+        it.init()
+        it.build(Matrix.Factory.eye(*it.size))
+    }
+
+fun buildScalarMatrix(value: Any, init: MatrixBuilder.() -> Unit): DenseMatrix2D =
+    MatrixBuilder().let {
+        when(value) {
             is CharSequence, is CharArray -> Matrix.Factory.linkToValue(value.toString())
             is Int -> Matrix.Factory.linkToValue(value)
             is Long -> Matrix.Factory.linkToValue(value)
@@ -116,20 +123,21 @@ class MatrixBuilder {
             is Short -> Matrix.Factory.linkToValue(value)
             is Byte -> Matrix.Factory.linkToValue(value)
             else -> Matrix.Factory.linkToValue(value)
+        }.apply {
+            it.init()
+            it.build(this)
         }
-        return build(matrix) as DenseMatrix2D
-    }
-}
-
-// MatrixDsl
-fun buildMatrix(init: MatrixBuilder.() -> Unit): DenseMatrix =
-    MatrixBuilder().let { builder ->
-        builder.init()
-        builder.zeros()
     }
 
 fun buildSparseMatrix(init: MatrixBuilder.() -> Unit): SparseMatrix =
-    MatrixBuilder().let { builder ->
-        builder.init()
-        builder.sparse()
+    MatrixBuilder().let {
+        it.init()
+        it.build(Matrix.Factory.sparse(it.valueType, *it.size))
     }
+
+fun buildSparseObjectMatrix2D(init: MatrixBuilder.() -> Unit): SparseObjectMatrix2D =
+    MatrixBuilder().let {
+        it.init()
+        it.build(SparseObjectMatrix2D.Factory.zeros(*it.size))
+    }
+

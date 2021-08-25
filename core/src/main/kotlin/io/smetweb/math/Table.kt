@@ -4,8 +4,6 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.PublishSubject
 import io.reactivex.rxjava3.subjects.Subject
 import io.smetweb.math.Table.Change
-import org.slf4j.Logger
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
 
@@ -26,17 +24,17 @@ open class Table<PK: Any>(
 ) {
 
     val keys: Iterable<PK>
-        get() = this.indexer()
+        get() = indexer()
 
     val size: Long
-        get() = this.counter()
+        get() = counter()
 
     fun clear() =
-        this.cleaner()
+        cleaner()
 
     /** return an [Observable] stream of [Change]s  */
     val changes: Observable<Change>
-        get() = this.emitter
+        get() = emitter
 
     override fun toString(): String =
         this.printer()
@@ -45,52 +43,56 @@ open class Table<PK: Any>(
         this.retriever(key)
 
     fun insert(values: Map<Class<out Property<*>>, Any?>): PK {
-        val tuple: Tuple<PK> = this.inserter()
+        val tuple: Tuple<PK> = inserter()
+        emitter.onNext(Change(Operation.CREATE, tuple.key, tuple::class.java, Pair(null, tuple)))
         tuple.set(values)
-            .map { Change(Operation.CREATE, tuple.key, it.first, it.second) }
-            .subscribe(this.emitter::onNext, this.emitter::onError)
+            .map { Change(Operation.UPDATE, tuple.key, it.first, it.second) }
+            .subscribe(emitter::onNext, emitter::onError)
         return tuple.key
     }
 
     fun insert(values: Iterable<Property<*>>): PK =
-        insert(values.associate { Pair(it.javaClass, it.get()) })
+        insert(values.associate { Pair(it::class.java, it.get()) })
 
     fun insert(vararg values: Property<*>): PK =
-        insert(values.associate { Pair(it.javaClass, it.get()) })
+        insert(values.associate { Pair(it::class.java, it.get()) })
 
     fun update(key: PK, values: Map<Class<out Property<*>>, Any?>) =
         this.retriever(key)!!.set(values)
             .map { Change(Operation.UPDATE, key, it.first, it.second) }
-            .subscribe(this.emitter::onNext, this.emitter::onError)
+            .subscribe(emitter::onNext, emitter::onError)
 
     fun update(key: PK, values: Iterable<Property<*>>) =
-        update(key, values.associate { Pair(it.javaClass, it.get()) })
+        update(key, values.associate { Pair(it::class.java, it.get()) })
 
     fun update(key: PK, vararg values: Property<*>) =
-        update(key, values.associate { Pair(it.javaClass, it.get()) })
+        update(key, values.associate { Pair(it::class.java, it.get()) })
 
     fun upsert(key: PK, values: Map<Class<out Property<*>>, Any?>): PK =
         this.retriever(key)?.let { tuple ->
             tuple.set(values)
                 .map { Change(Operation.UPDATE, tuple.key, it.first, it.second) }
-                .subscribe(this.emitter::onNext, this.emitter::onError)
+                .subscribe(emitter::onNext, emitter::onError)
             tuple.key
         } ?: insert(values)
 
     fun upsert(key: PK, values: Iterable<Property<*>>): PK =
-        upsert(key, values.associate { Pair(it.javaClass, it.get()) })
+        upsert(key, values.associate { Pair(it::class.java, it.get()) })
 
     fun upsert(key: PK, vararg values: Property<*>): PK =
-        upsert(key, values.associate { Pair(it.javaClass, it.get()) })
+        upsert(key, values.associate { Pair(it::class.java, it.get()) })
 
     fun delete(key: PK): Boolean =
         select(key)?.let { old ->
-            this.emitter.onNext(Change(Operation.DELETE, key, old.javaClass, Pair(old, null)))
-            this.remover(key)
+            emitter.onNext(Change(Operation.DELETE, key, old::class.java, Pair(old, null)))
+            remover(key)
         } != null
 
     enum class Operation {
-        CREATE, READ, UPDATE, DELETE
+        CREATE,
+        READ, // TODO use me?
+        UPDATE,
+        DELETE
     }
 
     /**
@@ -101,16 +103,16 @@ open class Table<PK: Any>(
     open class Property<T>(value: T? = null): AtomicReference<T>(value)
 
     /**
-     * [Change] notifies modifications made to e.g. a [Property], [Tuple], [Table] or their sub-types
+     * [Change] notifies creation/deletion of [Tuple], or updates to a [Property]
      */
     data class Change(
         val operation: Operation,
-        val sourceRef: Any?,
+        val keyRef: Any?,
         val valueType: Class<*>,
         val update: Pair<Any?, Any?>
     ) {
         private val string: String by lazy {
-            "$operation ${sourceRef?.let{"@it "}}${valueType.simpleName}: $update"
+            "$operation ${keyRef?.let{"@$it "} ?: ""}${valueType.simpleName}: $update"
         }
 
         override fun toString(): String = string
@@ -124,14 +126,20 @@ open class Table<PK: Any>(
         open val properties: List<Class<out Property<*>>>,
         private val getter: (Class<out Property<*>>) -> Any?,
         private val setter: (Class<out Property<*>>, Any?) -> Unit,
-        private val stringifier: () -> String = { stringifyProperties(properties, getter) }
+        private val stringifier: () -> String = {
+            buildString {
+                append('@')
+                append(key)
+                append(stringifyProperties(properties, getter))
+            }
+        }
     ) {
 
         override fun toString(): String =
             stringifier()
 
         fun <V> set(property: Property<V>) =
-            set(property.javaClass, property.get())
+            set(property::class.java, property.get())
 
         fun set(vararg properties: Property<*>) =
             properties.forEach { set(it) }
@@ -147,16 +155,13 @@ open class Table<PK: Any>(
         @Suppress("UNCHECKED_CAST")
         operator fun set(propertyType: Class<out Property<*>>, newValue: Any?): Pair<Any?, Any?>? =
             propertyType.let {
-                if(properties.contains(it)) {
-                    val oldValue = getter(it)
-                    if(oldValue !== newValue) {
-                        setter(it, newValue)
-                        Pair(oldValue, newValue)
-                    } else
-                        null
-                } else
-                    throw IllegalStateException(
-                        "Property $this not allowed, only: $properties")
+                val oldValue = getter(it)
+                if(oldValue !== newValue) {
+                    setter(it, newValue)
+                    Pair(oldValue, newValue)
+                } else {
+                    null
+                }
             }
 
         @Suppress("UNCHECKED_CAST")
@@ -173,10 +178,11 @@ open class Table<PK: Any>(
             propertyFilter.associateWith { getter(it) }
 
         fun <V> put(property: Property<V>): V? =
-                getAndUpdate(property.javaClass) { property.get() }
+                getAndUpdate(property::class.java) { property.get() }
 
-        private fun <V> update(propertyType: Class<out Property<V>>, op: (V?) -> V?): Change? {
-            val oldValue: V? = get(propertyType)
+        @Suppress("UNCHECKED_CAST")
+        private fun <V> update(propertyType: Class<out Property<*>>, op: (V?) -> V?): Change? {
+            val oldValue: V? = get(propertyType as Class<Property<V>>)
             val newValue: V? = op(oldValue)
             return set(propertyType, newValue)?.let {
                 Change(Operation.UPDATE, this.key, propertyType, it)
@@ -184,7 +190,7 @@ open class Table<PK: Any>(
         }
 
         @Suppress("UNCHECKED_CAST")
-        fun <V> getAndUpdate(propertyType: Class<Property<V>>, op: (V?) -> V?): V? =
+        fun <V> getAndUpdate(propertyType: Class<out Property<*>>, op: (V?) -> V?): V? =
                 update(propertyType, op)?.update?.first as V?
 
         @Suppress("UNCHECKED_CAST")
@@ -201,10 +207,10 @@ open class Table<PK: Any>(
 
         companion object {
 
-            private const val start = '['
-            private const val end = ']'
-            private const val eq = ':'
-            private const val delim: String = "; "
+            const val start = '['
+            const val end = ']'
+            const val eq = ':'
+            const val delim: String = "; "
 
             @JvmStatic
             private fun stringifyProperty(
