@@ -40,8 +40,9 @@ class TableTest {
     fun `test MatrixTable`() {
         val table: Table<Long> = MatrixTable(listOf(Prop1::class.java), buildSparseObjectMatrix2D { size = 4 by 1 })
         table.changes.subscribe(
-            { change -> log.info("Observed change: {}", change) },
-            { e -> log.info("Observed error: {}", e.message, e) })
+            { change -> log.info("Change: {}", change) },
+            { e -> log.warn("Error: {}", e.message, e) })
+
         table.insert(Prop1(11L))
         assertEquals(11L, table.select(0L)!![Prop1::class.java]) { "Table contents: $table" }
 

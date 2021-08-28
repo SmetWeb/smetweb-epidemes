@@ -20,8 +20,9 @@ open class Table<PK: Any>(
     private val counter: () -> Long,
     private val printer: () -> String,
     private val cleaner: () -> Unit,
-    private val emitter: Subject<Change<PK>> = PublishSubject.create()
 ) {
+    private val emitter: Subject<Change<PK>> = PublishSubject.create()
+    private val connectableEmitter = emitter.publish().autoConnect()
 
     val keys: Iterable<PK>
         get() = indexer()
@@ -34,7 +35,7 @@ open class Table<PK: Any>(
 
     /** return an [Observable] stream of [Change]s  */
     val changes: Observable<Change<PK>>
-        get() = emitter
+        get() = connectableEmitter
 
     override fun toString(): String =
         this.printer()
@@ -112,7 +113,7 @@ open class Table<PK: Any>(
         val update: Pair<Any?, Any?>
     ) {
         private val string: String by lazy {
-            "$operation ${keyRef.let{"@$it "} ?: ""}${valueType.simpleName}: $update"
+            "$operation ${keyRef.let{"@$it "} ?: ""}${valueType.simpleName}: ${update.first ?: "?"} -> ${update.second ?: "?"}"
         }
 
         override fun toString(): String = string

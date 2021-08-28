@@ -110,10 +110,12 @@ dependencies {
 	// test
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-log4j2")
+	testImplementation(group = "com.fasterxml.jackson.core", name = "jackson-databind") // required by log4j2
+	testImplementation(group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml") // required by log4j2
 	testImplementation(group = "org.springframework.boot", name = "spring-boot-starter-test") {
 		exclude(module = "junit")
 		exclude(group = "org.junit.vintage")
-//		exclude(group = "ch.qos.logback", module = "logback-classic")
+		exclude(group = "ch.qos.logback", module = "logback-classic")
 	}
 	testImplementation(group = "com.h2database", name = "h2", version = h2Version)
 	testImplementation(group = "org.awaitility", name = "awaitility-kotlin", version = "4.0.2")

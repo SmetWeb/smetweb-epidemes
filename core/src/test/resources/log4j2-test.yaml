@@ -10,11 +10,12 @@ Configuration:
       name: STDOUT
       target: SYSTEM_OUT
       PatternLayout:
-        Pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{%5level} %style{%5pid}{magenta} --- [%15.15t] %style{%-40.40replace{%logger{1.}}{\\$\\$\\w+}{}}{cyan} : %style{%m}{black} [at %C.%M(%F:%L)]%xEx{filters(${filters})}%n"
+        Pattern: "%d{HH:mm:ss.SSS} %highlight{%5level} %style{%5pid}{magenta} [%11.11t] %style{%-20.20replace{%logger{1.}}{\\$\\$\\w+}{}}{cyan} - %m [at %style{%C.%M(%F:%L)}{yellow}]%xEx{filters(${filters})}%n"
+#        Pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{%5level} %style{%5pid}{magenta} [%15.15t] %style{%-20.20replace{%logger{1.}}{\\$\\$\\w+}{}}{cyan} - %m [at %style{%C.%M(%F:%L)}{yellow}]%xEx{filters(${filters})}%n"
 
   Loggers:
     Root:
-      level: debug
+      level: info
       AppenderRef:
         ref: STDOUT
 

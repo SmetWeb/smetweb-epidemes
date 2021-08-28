@@ -31,17 +31,16 @@ class TablePartitioner<PK: Any>(
     private val keys: MutableList<PK> = Collections.synchronizedList(table.keys.toMutableList())
 
     init {
-        keys
         root = Stratum(indexRange = intArrayOf(0, keys.size))
         // subscribe as last subscriber?
-        table.changes.doAfterNext { ch: Table.Change<PK> ->
+        table.changes.subscribe({ ch: Table.Change<PK> ->
             try {
                 onChange(ch)
             } catch (e: Throwable) {
                 // internal error
                 onError(e)
             }
-        }.subscribe()
+        }, onError)
     }
 
     override fun toString(): String =
@@ -56,9 +55,11 @@ class TablePartitioner<PK: Any>(
                 append(" <-", root.bounds.contentToString(), "- ", root)
             }
         } catch (e: Exception) {
-            log.warn("Unable to render string of partition: " + e.message, e)
+            onError(IllegalStateException("Unable to render string of partition: " + e.message, e))
             ""
         }
+
+    fun index() = this.root.indexKeyStream()
 
     fun <P: Table.Property<V>, V: Comparable<*>> stratify(
         property: Class<P>,
@@ -67,13 +68,13 @@ class TablePartitioner<PK: Any>(
     ): TablePartitioner<PK> {
         val stratification = Stratification(property, boundaries, valueComparator)
         hierarchy.add(stratification)
-        this.root.split(stratification, ::stratifier, { evaluator(stratification, it) }, ::nodeSplitter)
+        root.split(stratification, ::stratifier, { evaluator(stratification, it) }, ::nodeSplitter)
         return this
     }
 
     private fun findStratum(vararg sampleValues: Comparable<*>): Stratum<PK> {
-        if (this.root.isEmpty || sampleValues.isEmpty())
-            return this.root
+        if (root.isEmpty || sampleValues.isEmpty())
+            return root
 
         var result: Stratum<PK> = this.root
         for (value: Comparable<*> in sampleValues) {
@@ -91,7 +92,7 @@ class TablePartitioner<PK: Any>(
     }
 
     fun keys(vararg valueFilter: Comparable<*>): List<Any> =
-        if (this.root.isEmpty)
+        if (root.isEmpty)
             emptyList()
         else
             stratifier(findStratum(*valueFilter).bounds).toList()
@@ -287,7 +288,7 @@ class TablePartitioner<PK: Any>(
             valueComparator = valueComparator)
 
         override fun toString(): String =
-            "Dim[${propertyType.simpleName}]"
+            ":" + propertyType.simpleName
     }
 
     /**
@@ -303,29 +304,28 @@ class TablePartitioner<PK: Any>(
         var stratification: Stratification<*>? = null // null == leaf
         var children: NavigableMap<Range<*>, Stratum<PK>>? = null // null = leaf
 
-
         override fun toString(): String {
             val n = bounds[1] - bounds[0]
             return children?.let {
                 // branch
                 val branchStr = it.entries.stream()
                     .map { (bin, node) ->
-                        if (node.isEmpty) // category key
-                            ""
-                        else
+//                        if (node.isEmpty) // category key
+//                            ""
+//                        else
                             ((if (stratification!!.splitOrder.isEmpty()) // intermediate range
                                 " '${bin.lower.value}':"
                             else if (bin.lowerFinite()) // lowest range
-                                (" <${bin.lower.value}=<")
+                                (" < ${bin.lower.value} =<")
                             else
                                 "")
                                     + " " + node) // value(s): leaf or branch
                     }
                     .reduce { l, r -> l + r }
                     .orElse("")
-                val name = stratification!!.propertyType.simpleName
+                val name = stratification!!.toString()
                 buildString {
-                    append("{", name.substring(0, 5.coerceAtMost(name.length)), branchStr, "}")
+                    append("{", name.substring(0, 7.coerceAtMost(name.length)), branchStr, "}")
                 }
             }
             // leaf
