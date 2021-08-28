@@ -1,11 +1,13 @@
 package io.smetweb.math
 
+import io.smetweb.log.getLogger
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.ujmp.core.enums.ValueType
 import java.util.concurrent.atomic.AtomicLong
 
 class TableTest {
+
+    private val log = getLogger()
 
     class Prop1(value: Long): Table.Property<Long>(value)
 
@@ -36,11 +38,10 @@ class TableTest {
 
     @Test
     fun `test MatrixTable`() {
-        val table: Table<Long> = MatrixTable(listOf(Prop1::class.java), buildSparseObjectMatrix2D {
-            size = 4 by 1
-            valueType = ValueType.OBJECT
-        })
-        table.changes.subscribe( { println("Change: $it") }, { println("Error: ${it.message}"); it.printStackTrace() } )
+        val table: Table<Long> = MatrixTable(listOf(Prop1::class.java), buildSparseObjectMatrix2D { size = 4 by 1 })
+        table.changes.subscribe(
+            { change -> log.info("Observed change: {}", change) },
+            { e -> log.info("Observed error: {}", e.message, e) })
         table.insert(Prop1(11L))
         assertEquals(11L, table.select(0L)!![Prop1::class.java]) { "Table contents: $table" }
 

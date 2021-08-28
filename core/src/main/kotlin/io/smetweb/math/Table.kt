@@ -20,7 +20,7 @@ open class Table<PK: Any>(
     private val counter: () -> Long,
     private val printer: () -> String,
     private val cleaner: () -> Unit,
-    private val emitter: Subject<Change> = PublishSubject.create()
+    private val emitter: Subject<Change<PK>> = PublishSubject.create()
 ) {
 
     val keys: Iterable<PK>
@@ -33,7 +33,7 @@ open class Table<PK: Any>(
         cleaner()
 
     /** return an [Observable] stream of [Change]s  */
-    val changes: Observable<Change>
+    val changes: Observable<Change<PK>>
         get() = emitter
 
     override fun toString(): String =
@@ -90,7 +90,7 @@ open class Table<PK: Any>(
 
     enum class Operation {
         CREATE,
-        READ, // TODO use me?
+//        READ, // TODO use me?
         UPDATE,
         DELETE
     }
@@ -98,21 +98,21 @@ open class Table<PK: Any>(
     /**
      * [Property] wraps a value of a [Tuple] in some [Table]
      *
-     * @param <T> the value return type
-    </T> */
+     * @param T the value return type
+     */
     open class Property<T>(value: T? = null): AtomicReference<T>(value)
 
     /**
      * [Change] notifies creation/deletion of [Tuple], or updates to a [Property]
      */
-    data class Change(
+    data class Change<PK: Any>(
         val operation: Operation,
-        val keyRef: Any?,
+        val keyRef: PK,
         val valueType: Class<*>,
         val update: Pair<Any?, Any?>
     ) {
         private val string: String by lazy {
-            "$operation ${keyRef?.let{"@$it "} ?: ""}${valueType.simpleName}: $update"
+            "$operation ${keyRef.let{"@$it "} ?: ""}${valueType.simpleName}: $update"
         }
 
         override fun toString(): String = string
@@ -164,9 +164,8 @@ open class Table<PK: Any>(
                 }
             }
 
-        @Suppress("UNCHECKED_CAST")
-        operator fun <V> get(key: Class<out Property<V>>): V? =
-            getter(key) as V?
+        operator fun get(key: Class<out Property<*>>): Any? =
+            getter(key)
 
         fun toMap(vararg property: Class<out Property<*>>): Map<Class<out Property<*>>, Any?> =
                 if (property.isEmpty())
@@ -181,8 +180,8 @@ open class Table<PK: Any>(
                 getAndUpdate(property::class.java) { property.get() }
 
         @Suppress("UNCHECKED_CAST")
-        private fun <V> update(propertyType: Class<out Property<*>>, op: (V?) -> V?): Change? {
-            val oldValue: V? = get(propertyType as Class<Property<V>>)
+        private fun <V> update(propertyType: Class<out Property<*>>, op: (V?) -> V?): Change<PK>? {
+            val oldValue: V? = get(propertyType) as V?
             val newValue: V? = op(oldValue)
             return set(propertyType, newValue)?.let {
                 Change(Operation.UPDATE, this.key, propertyType, it)
@@ -197,11 +196,11 @@ open class Table<PK: Any>(
         fun <V> updateAndGet(propertyType: Class<out Property<V>>, op: (V?) -> V?): V? =
                 update(propertyType, op)?.update?.second as V?
 
-        fun <P: Property<W>, W> override(property: Class<P>, override: W?): Tuple<PK> =
+        fun withOverride(property: Class<*>, newValue: Any?): Tuple<PK> =
             Tuple(
                 key = key,
                 properties = properties,
-                getter = { key: Class<out Property<*>> -> if (key == property) override else getter(key) },
+                getter = { key: Class<out Property<*>> -> if (key == property) newValue else getter(key) },
                 setter = setter,
                 stringifier = stringifier)
 
@@ -218,9 +217,7 @@ open class Table<PK: Any>(
                 properties: List<Class<out Property<*>>>,
                 getter: (Class<out Property<*>>) -> Any?
             ): String = buildString {
-                append(properties[i].simpleName)
-                append(eq)
-                append(getter(properties[i]) ?: "")
+                append(properties[i].simpleName, eq, getter(properties[i]) ?: "")
             }
 
             @JvmStatic
@@ -232,8 +229,7 @@ open class Table<PK: Any>(
                 if(properties.isNotEmpty()) {
                     append(stringifyProperty(0, properties, getter))
                     (1 until properties.size).forEach { i ->
-                        append(delim)
-                        append(stringifyProperty(i, properties, getter))
+                        append(delim, stringifyProperty(i, properties, getter))
                     }
                 }
                 append(end)

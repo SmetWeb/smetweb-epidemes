@@ -178,24 +178,29 @@ data class Range<T: Comparable<*>>(
         fun <T: Comparable<*>> upToAndIncluding(maximum: T) = upTo(maximum, true)
 
         /**
-         * @param lhs comparison's left-hand-side
-         * @param rhs comparison's right-hand-side
+         * @param lhs comparison's left-hand-side [Range]
+         * @param rhs comparison's right-hand-side [Range]
          * @param comparator the comparison's evaluator
+         * @param T the ranges' value type
          * @return -1, 0 or 1 if lhs is respectively smaller, comparable, or bigger than/to rhs
          */
+        @Suppress("UNCHECKED_CAST")
         fun <T: Comparable<*>> compare(
-                lhs: Range<T>,
-                rhs: Range<T>,
-                comparator: Comparator<in Extreme<T>> = Comparator { o1, o2 -> Compare.compare(o1, o2) }
+            lhs: Range<T>,
+            rhs: Range<T>,
+            valueComparator: Comparator<T> =
+                Comparator { o1, o2 -> Compare.compare(o1, o2) },
+            extremeComparator: Comparator<Extreme<T>> =
+                Comparator { o1, o2 -> Compare.compare(o1.value!!, o2.value!!, valueComparator) }
         ): Int {
             return if (lhs.overlaps(rhs))
                 0 // any overlap compares equal (to ensure symmetry)
             else if (lhs.lowerFinite())
                 if (rhs.lowerFinite())
-                    Compare.unequalOrElse(comparator.compare(lhs.lower, rhs.lower)) {
+                    Compare.unequalOrElse(extremeComparator.compare(lhs.lower, rhs.lower)) {
                         if (lhs.upperFinite())
                             if (rhs.upperFinite())
-                                comparator.compare(lhs.upper, rhs.upper) // ;fin ? ;fin
+                                extremeComparator.compare(lhs.upper, rhs.upper) // ;fin ? ;fin
                             else
                                 -1 // ;fin < ;+inf
                         else if (rhs.upperFinite())
@@ -209,7 +214,7 @@ data class Range<T: Comparable<*>>(
                 -1 // -inf;* < fin;*
             else if (lhs.upperFinite()) // -inf;* = -inf;*
                 if (rhs.upperFinite())
-                    comparator.compare(lhs.upper, rhs.upper) // -inf;fin ? -inf;fin
+                    extremeComparator.compare(lhs.upper, rhs.upper) // -inf;fin ? -inf;fin
                 else
                     1 // -inf;fin > -inf;+inf
             else if (rhs.upperFinite())

@@ -96,12 +96,10 @@ class MatrixTable(
             })
 
         fun rowVectorToString(rowLabel: String, rowVector: Matrix, columnValueTypes: List<Class<*>>) = buildString {
-            append(rowLabel.colValueToString())
-            append(Tuple.start)
-            append(columnValueTypes
+            val valueStr = columnValueTypes
                 .mapIndexed { i, type -> rowVector.getNumericOrEnum(type, 0, i.toLong()).colValueToString() }
-                .joinToString(Tuple.delim))
-            append(Tuple.end)
+                .joinToString(Tuple.delim)
+            append(rowLabel.colValueToString(), Tuple.start, valueStr, Tuple.end)
         }
 
         fun buildIndex(rowMax: Long, removedRows: Collection<Long>): Iterable<Long> {
@@ -145,6 +143,4 @@ class MatrixTable(
                 ?: error("Invalid property: $colType, allowed: $properties")
         }
     )
-
-
 }
