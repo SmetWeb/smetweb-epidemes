@@ -7,7 +7,7 @@ import java.util.*
 import java.util.concurrent.atomic.AtomicLong
 
 class MatrixTable(
-    properties: List<Class<out Property<*>>>,
+    override val properties: List<Class<out Property<*>>>,
     matrix: Matrix,
 
     colValueTypes: List<Class<*>> =
@@ -26,6 +26,7 @@ class MatrixTable(
                 null
         },
 ): Table<Long>(
+    properties = properties,
     counter = { rowMax.get() - rowRecycler.size },
     printer = { // matrix::toString,
         buildString {

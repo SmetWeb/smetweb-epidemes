@@ -3,7 +3,7 @@ package io.smetweb.random
 import java.io.Serializable
 
 /**
- * [PseudoRandomEcj] is a simplified port the `MersenneTwisterFast` implementation
+ * [PseudoRandomEcj] is a simplified port of the `MersenneTwisterFast` implementation
  * by Sean Luke, distributed in the [ECJ library](https://github.com/GMUEClab/ecj)
  */
 @Strictfp

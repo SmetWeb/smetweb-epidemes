@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference
  * TODO compare with [Apache Kafka Stream API](https://kafka.apache.org/28/documentation/streams/)
  */
 open class Table<PK: Any>(
+    open val properties: List<Class<out Property<*>>>,
     private val inserter: () -> Tuple<PK>,
     private val remover: (PK) -> Tuple<PK>?,
     private val indexer: () -> Iterable<PK>,

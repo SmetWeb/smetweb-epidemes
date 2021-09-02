@@ -1,10 +1,11 @@
 package io.smetweb.math
 
 class HashMapTable<PK: Any>(
-    private val properties: List<Class<out Property<*>>>,
-    private val keyGen: () -> PK,
-    private val map: MutableMap<PK, Tuple<PK>> = mutableMapOf()
+    override val properties: List<Class<out Property<*>>>,
+    keyGen: () -> PK,
+    map: MutableMap<PK, Tuple<PK>> = mutableMapOf()
 ): Table<PK>(
+    properties = properties,
     counter = { map.size.toLong() },
     printer = map::toString,
     cleaner = map::clear,

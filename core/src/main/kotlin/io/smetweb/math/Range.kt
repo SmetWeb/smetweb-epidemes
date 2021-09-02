@@ -19,8 +19,8 @@ data class Range<T: Comparable<*>>(
      * @return a [Range] instance
      */
     constructor(value: T? = null):
-            this(minimum = value, minimumInclusive = true,
-                maximum = value, maximumInclusive = true)
+            this(minimum = value, minimumInclusive = value != null,
+                maximum = value, maximumInclusive = value != null)
 
     constructor(minimum: T? = null, maximum: T? = null):
             this(minimum = minimum, minimumInclusive = minimum != null,

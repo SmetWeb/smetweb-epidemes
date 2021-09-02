@@ -73,10 +73,7 @@ interface PseudoRandom {
 	fun nextLongBelow(bound: Long): Long =
 			this::nextLong.coerceBelow(bound)
 
-	fun <E> nextElement(elements: List<E>, max: Int = elements.size): E =
-			nextElement(elements, 0, max)
-
-		/**
+	/**
 	 * 0 =< min =< max =< (n - 1)
 	 *
 	 * @param elements non-empty ordered set
@@ -86,16 +83,16 @@ interface PseudoRandom {
 	 * @see nextInt
 	 */
 	fun <E> nextElement(elements: List<E>, min: Int = 0, max: Int = elements.size): E {
-		require(elements.isNotEmpty()) { "empty" }
-		require(min >= 0) { "min < 0" }
-		require(min < elements.size) { "min >= size" }
-		require(max < elements.size) { "max >= size" }
-		require(max >= min) { "max = min" }
+		require(elements.isNotEmpty()) { "no elements to sample" }
+		require(min >= 0) { "min ($min) < 0" }
+		require(max > min) { "min ($min) >= max ($max)" }
+		require(min < elements.size) { "min ($min) >= size (${elements.size})" }
+		require(max <= elements.size) { "max ($max) > size (${elements.size})" }
 
 		return if (elements.size == 1)
 			elements[0]
-		else if (max == min)
-			elements[min]
+		else if (min == 0)
+			elements[nextIntBelow(max)]
 		else
 			elements[min + nextIntBelow(max - min)]
 	}

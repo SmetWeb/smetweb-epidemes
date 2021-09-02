@@ -3,7 +3,6 @@ package io.smetweb.math
 import io.smetweb.log.getLogger
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
-import kotlin.streams.toList
 
 class TablePartitionerTest {
 
@@ -14,12 +13,11 @@ class TablePartitionerTest {
     @Test
     fun `test index partitions`() {
         val table: Table<Long> = MatrixTable(listOf(Prop1::class.java), buildSparseObjectMatrix2D { size = 4 by 1 })
-        val partition = TablePartitioner(table) { e -> log.warn("Observed strata error: {}", e.message, e) }
+        val strata = TablePartitioner(table) { e -> log.warn("Observed strata error: {}", e.message, e) }
             .stratify(Prop1::class.java, listOf(BigDecimal.ZERO, BigDecimal.ONE, BigDecimal.TEN))
 
         table.changes.subscribe(
-            { change -> log.info("Change {}\n\tpartition index: {}, strata: {}",
-                change, partition.index().toList(), partition) },
+            { change -> log.info("Change {}\n\tstrata: {}", change, strata) },
             { e -> log.warn("Table error: {}", e.message, e) })
 
         table.insert(Prop1(1.opposite()))

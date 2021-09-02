@@ -6,11 +6,10 @@ import java.util.function.*
 import java.util.stream.IntStream
 import java.util.stream.Stream
 
-
 /**
  * [TablePartitioner] maintains an ordered index partition of strata
  * based on (a [hierarchy] of) one [Table.Property] or more (iff its value type is [Comparable]),
- * having at least one [Stratum] per [Stratification] (outer bounds are infinite)
+ * having at least one [Stratum] per [Delimiters] (outer bounds are infinite)
  * plus one [Stratum] for each of its intermediate split values,
  * for enabling *[reproducible](https://www.wikiwand.com/en/Reproducibility)*
  * [stratified sampling](https://www.wikiwand.com/en/Stratified_sampling)
@@ -25,10 +24,10 @@ class TablePartitioner<PK: Any>(
     private val validation: Boolean = false,
     private val onError: (Throwable) -> Unit = Throwable::printStackTrace,
 ) {
-    private val log = getLogger()
-    private val root: Stratum<PK>
-    private val hierarchy: MutableList<Stratification<*>> = mutableListOf()
+    val root: Stratum<PK>
+    private val hierarchy: MutableList<Delimiters<*>> = mutableListOf()
     private val keys: MutableList<PK> = Collections.synchronizedList(table.keys.toMutableList())
+    private val log = getLogger()
 
     init {
         root = Stratum(indexRange = intArrayOf(0, keys.size))
@@ -46,76 +45,79 @@ class TablePartitioner<PK: Any>(
     override fun toString(): String =
         try {
             val n = keys.size
+            val nameStr = root.limits!!.toString().let { it.substring(0, 7.coerceAtMost(it.length)) }
+            val keyStr = (if (n < 6)
+                keys.toList()
+            else
+                listOf(keys[0], keys[1], null, keys[n - 2], keys[n - 1]))
+                .joinToString(", ") {
+                    if (it == null) ".." else "$it=${evaluator(root.limits!!, it)}"
+                }
             buildString {
-                if (n < 8)
-                    append(keys)
-                else
-                    append("[", keys[0], ", ", keys[1], ", ", keys[2], ", ..., ", keys[n - 3], ", ",
-                        keys[n - 2], ", ", keys[n - 1], "]")
-                append(" <-", root.bounds.contentToString(), "- ", root)
+                append(nameStr, "{", keyStr, "} ", root.toString())
             }
         } catch (e: Exception) {
             onError(IllegalStateException("Unable to render string of partition: " + e.message, e))
             ""
         }
 
-    fun index() = this.root.indexKeyStream()
+//    fun index() = this.root.indexKeyStream()
 
     fun <P: Table.Property<V>, V: Comparable<*>> stratify(
         property: Class<P>,
         boundaries: Iterable<V> = emptyList(),
         valueComparator: Comparator<V> = Comparator.naturalOrder(),
     ): TablePartitioner<PK> {
-        val stratification = Stratification(property, boundaries, valueComparator)
-        hierarchy.add(stratification)
-        root.split(stratification, ::stratifier, { evaluator(stratification, it) }, ::nodeSplitter)
+        val delimiters = Delimiters(property, boundaries, valueComparator)
+        hierarchy.add(delimiters)
+        root.split(delimiters, ::stratifier, { evaluator(delimiters, it) }, ::nodeSplitter)
         return this
     }
 
-    private fun findStratum(vararg sampleValues: Comparable<*>): Stratum<PK> {
-        if (root.isEmpty || sampleValues.isEmpty())
-            return root
+//    private fun findStratum(vararg sampleValues: Comparable<*>): Stratum<PK> {
+//        if (root.isEmpty || sampleValues.isEmpty())
+//            return root
+//
+//        var result: Stratum<PK> = this.root
+//        for (value: Comparable<*> in sampleValues) {
+//            if (result.stratification == null)
+//                error("Filter values ${sampleValues.contentToString()} exceed available groupings: $hierarchy")
+//            val range = if (value is Range<*>) value else Range(value)
+//            result = if (result.stratification!!.splitOrder.isEmpty()) // walk (value) branch
+//                result.valueNode(range, ::nodeSplitter)
+//            else if (result.children != null) // walk (sub-range) branch
+//                result.children!!.floorEntry(range).value
+//            else
+//                error("Unexpected, no match for filters: " + sampleValues.contentToString())
+//        }
+//        return result
+//    }
 
-        var result: Stratum<PK> = this.root
-        for (value: Comparable<*> in sampleValues) {
-            if (result.stratification == null)
-                error("Filter values ${sampleValues.contentToString()} exceed available groupings: $hierarchy")
-            val range = if (value is Range<*>) value else Range(value)
-            result = if (result.stratification!!.splitOrder.isEmpty()) // walk (value) branch
-                result.valueNode(range, ::nodeSplitter)
-            else if (result.children != null) // walk (sub-range) branch
-                result.children!!.floorEntry(range).value
-            else
-                error("Unexpected, no match for filters: " + sampleValues.contentToString())
-        }
-        return result
-    }
-
-    fun keys(vararg valueFilter: Comparable<*>): List<Any> =
-        if (root.isEmpty)
-            emptyList()
-        else
-            stratifier(findStratum(*valueFilter).bounds).toList()
+//    fun keys(vararg valueFilter: Comparable<*>): List<Any> =
+//        if (root.isEmpty)
+//            emptyList()
+//        else
+//            stratifier(findStratum(*valueFilter).bounds).toList()
 
     fun nearestKeys(
-        deviationConfirmer: (Class<*>, Range<*>) -> Boolean,
-        vararg valueFilter: Comparable<*>
-    ): List<Any?> {
+        defaultOnDeviation: (Class<out Table.Property<*>>, Range<*>) -> Boolean,
+        vararg strata: Comparable<*>?
+    ): List<PK> {
         if (root.isEmpty)
             return Collections.emptyList()
 
-        if (valueFilter.isEmpty())
+        if (strata.isEmpty())
             return Collections.unmodifiableList(keys)
 
         // walk the hierarchy
         var stratum: Stratum<PK> = this.root
         var childEntry: Map.Entry<Range<*>, Stratum<PK>>?
-        for (value: Comparable<*>? in valueFilter) {
+        for (value: Comparable<*>? in strata) {
             val valueRange: Range<*>
 
             if (value is Range<*>) {
                 valueRange = value
-                // TODO merge node-bins if value-range contains multiple nodes/range
+                // TODO merge node-bins if value-range contains multiple strata
                 val low: Stratum<PK>? = (
                         if (valueRange.lowerFinite())
                             stratum.children!!.ceilingEntry(Range(valueRange.lowerBound()))
@@ -145,7 +147,7 @@ class TablePartitioner<PK: Any>(
                     next = stratum.children!!.higherEntry(next.key)
                 // upper category undefined/empty, expand by 1 within bounds
                 val range = Range(prev?.key?.lowerBound(), next?.key?.upperBound())
-                if (!deviationConfirmer(stratum.stratification!!.propertyType, range))
+                if (!defaultOnDeviation(stratum.limits!!.propertyType, range))
                     return emptyList()
                 val start = prev?.value?.bounds?.get(0) ?: stratum.bounds[0]
                 val end = next?.value?.bounds?.get(1) ?: stratum.bounds[1]
@@ -228,7 +230,7 @@ class TablePartitioner<PK: Any>(
                 while (stratum != null) {
                     if (stratum.parentRange != null) {
                         indexRanges.add(stratum.parentRange)
-                        val key = stratum.parent!!.stratification!!.propertyType
+                        val key = stratum.parent!!.limits!!.propertyType
                         val value = tuple[key] as Comparable<*>
                         values.add(Range(value))
                     }
@@ -254,11 +256,11 @@ class TablePartitioner<PK: Any>(
         keys.subList(bounds[0], bounds[1])
 
     @Suppress("UNCHECKED_CAST")
-    fun <V: Comparable<*>> evaluator(dim: Stratification<V>, key: PK): V? =
-        table.select(key)?.get(dim.propertyType) as V?
+    fun <V: Comparable<*>> evaluator(strat: Delimiters<V>, key: PK): V? =
+        table.select(key)?.get(strat.propertyType) as V?
 
-    private fun <V: Comparable<*>> split(stratum: Stratum<PK>, dim: Stratification<V>) {
-        stratum.split(dim, ::stratifier, { key -> evaluator(dim, key) }, ::nodeSplitter)
+    private fun <V: Comparable<*>> split(stratum: Stratum<PK>, strat: Delimiters<V>) {
+        stratum.split(strat, ::stratifier, { key -> evaluator(strat, key) }, ::nodeSplitter)
         if (validation)
             validate()
     }
@@ -266,14 +268,17 @@ class TablePartitioner<PK: Any>(
     private fun nodeSplitter(stratum: Stratum<PK>) {
         var passed = false
         for (i in 0 until hierarchy.size - 1) {
-            if (!passed && hierarchy[i] === stratum.parent!!.stratification)
+            if (!passed && hierarchy[i] === stratum.parent!!.limits)
                 passed = true
             if (passed)
                 split(stratum, hierarchy[i + 1])
         }
     }
 
-    data class Stratification<V: Comparable<*>> internal constructor(
+    fun strataFor(prop: Class<out Table.Property<*>>, value: Comparable<*>): List<Pair<Range<*>, Stratum<PK>>> =
+        this.root.strataFor(prop, value).toList()
+
+    data class Delimiters<V: Comparable<*>> internal constructor(
         val propertyType: Class<out Table.Property<V>>,
         val valueComparator: Comparator<V>,
         val splitOrder: List<V>,
@@ -288,7 +293,7 @@ class TablePartitioner<PK: Any>(
             valueComparator = valueComparator)
 
         override fun toString(): String =
-            ":" + propertyType.simpleName
+            propertyType.simpleName
     }
 
     /**
@@ -298,11 +303,11 @@ class TablePartitioner<PK: Any>(
         val parent: Stratum<PK>? = null, // null == root
         val parentRange: Range<*>? = null,  // null == root
         indexRange: IntArray,
-        val bounds: IntArray = indexRange.copyOf()
+        var limits: Delimiters<*>? = null // null == leaf
     ) {
-        private val log = getLogger()
-        var stratification: Stratification<*>? = null // null == leaf
+        val bounds: IntArray = indexRange.copyOf()
         var children: NavigableMap<Range<*>, Stratum<PK>>? = null // null = leaf
+        private val log = getLogger()
 
         override fun toString(): String {
             val n = bounds[1] - bounds[0]
@@ -313,26 +318,25 @@ class TablePartitioner<PK: Any>(
 //                        if (node.isEmpty) // category key
 //                            ""
 //                        else
-                            ((if (stratification!!.splitOrder.isEmpty()) // intermediate range
+                            ((if (limits!!.splitOrder.isEmpty()) // intermediate range
                                 " '${bin.lower.value}':"
                             else if (bin.lowerFinite()) // lowest range
-                                (" < ${bin.lower.value} =<")
+                                (" < '${bin.lower.value}' =<")
                             else
                                 "")
                                     + " " + node) // value(s): leaf or branch
                     }
                     .reduce { l, r -> l + r }
                     .orElse("")
-                val name = stratification!!.toString()
                 buildString {
-                    append("{", name.substring(0, 7.coerceAtMost(name.length)), branchStr, "}")
+                    append("{", branchStr, "}")
                 }
             }
             // leaf
                 ?: buildString {
                     if (n > 2)
                         append(n, "x")
-                    append("[")
+                    append("#[")
                     if(!isEmpty) {
                         append(bounds[0])
                         if (n > 1)
@@ -349,12 +353,12 @@ class TablePartitioner<PK: Any>(
         val isEmpty: Boolean
             get() = bounds[0] == bounds[1]
 
-        fun indexKeyStream(): IntStream =
-            children
-                // recurse
-                ?.values?.stream()?.flatMapToInt(Stratum<PK>::indexKeyStream)
-                // stop
-                ?: IntStream.range(bounds[0], bounds[1])
+//        fun indexKeyStream(): IntStream =
+//            children
+//                // recurse
+//                ?.values?.stream()?.flatMapToInt(Stratum<PK>::indexKeyStream)
+//                // stop
+//                ?: IntStream.range(bounds[0], bounds[1])
 
         fun resize(
             tuple: Table.Tuple<*>,
@@ -362,12 +366,12 @@ class TablePartitioner<PK: Any>(
             leafHandler: (Range<*>, Stratum<PK>) -> Boolean,
             nodeSplitter: (Stratum<PK>) -> Unit
         ) {
-            if(stratification == null)
+            if(limits == null)
                 error("Missing dimension?")
 
-            val value = (tuple[stratification!!.propertyType]
-                ?: error("$tuple has no value for $stratification")) as Comparable<*>
-            if (stratification!!.splitOrder.isEmpty()) {
+            val value = (tuple[limits!!.propertyType]
+                ?: error("$tuple has no value for $limits")) as Comparable<*>
+            if (limits!!.splitOrder.isEmpty()) {
                 // no split points: each value is a bin
                 val bin: Range<*> = Range(value)
                 val child = valueNode(bin, nodeSplitter)
@@ -387,7 +391,7 @@ class TablePartitioner<PK: Any>(
                 // find appropriate range between provided split points
                 val bin: Range<*> = Range(value)
                 val entry = children?.floorEntry(bin)
-                    ?: error("Unexpected, $stratification: $value -> $bin < " + children!!.firstKey())
+                    ?: error("Unexpected, $limits: $value -> $bin < " + children!!.firstKey())
                 val child = entry.value
                 if (child!!.children != null) {
                     // resize children/sub-ranges recursively
@@ -400,7 +404,7 @@ class TablePartitioner<PK: Any>(
                     bounds[1] += delta // resize parent
                     shift(children!!.tailMap(bin, false).values.stream(), delta)
                 } else
-                    log.warn("leaf not adjusted: {}", bin);
+                    log.warn("leaf not adjusted: {}", bin)
             }
         }
 
@@ -419,19 +423,36 @@ class TablePartitioner<PK: Any>(
         private fun <V: Comparable<*>> Any.isIn(range: Range<V>): Boolean =
             range.contains(this as V)
 
+        fun <V: Comparable<*>> strataFor(prop: Class<out Table.Property<*>>, value: V): MutableList<Pair<Range<*>, Stratum<PK>>> =
+            children?.entries
+                ?.flatMapTo(mutableListOf()) { (bin: Range<*>, child: Stratum<PK>) ->
+                    // recurse on children
+                    val childStrata = child.strataFor(prop, value)
+                    @Suppress("UNCHECKED_CAST")
+                    return@flatMapTo if (childStrata.isNotEmpty())
+                        // some child stratum's range contains given property/value: return these first
+                        childStrata
+                    else if (this.limits!!.propertyType == prop && (bin as Range<V>).contains(value))
+                        // current child stratum's range contains given property/value: return new path from this node
+                        listOf(Pair(bin, child))
+                    else
+                        listOf()
+                }
+                ?: mutableListOf()
+
         fun invalidChildren(tupleFetcher: (Int) -> Table.Tuple<*>): IntStream =
                 children?.entries?.stream()
                     // recurse on children
-                    ?.flatMapToInt { (bin: Range<*>, stratum: Stratum<PK>) ->
+                    ?.flatMapToInt { (bin: Range<*>, child: Stratum<PK>) ->
                         // sort once
-                        val invalid: IntArray = stratum.invalidChildren(tupleFetcher).sorted().toArray()
-                        IntStream.range(stratum.bounds[0], stratum.bounds[1])
+                        val invalid: IntArray = child.invalidChildren(tupleFetcher).sorted().toArray()
+                        IntStream.range(child.bounds[0], child.bounds[1])
                             // invalid: child(ren) invalid
                             .filter { Arrays.binarySearch(invalid, it) >= 0 }
                             // invalid: value out of range
                             .filter {
                                 val tuple = tupleFetcher(it)
-                                val value = tuple[stratification!!.propertyType] ?: error("No value for $stratification in $tuple")
+                                val value = tuple[limits!!.propertyType] ?: error("No value for $limits in $tuple")
                                 !value.isIn(bin)
                             }
                     }
@@ -439,26 +460,26 @@ class TablePartitioner<PK: Any>(
 
         @Suppress("UNCHECKED_CAST")
         fun <V: Comparable<*>> split(
-            strat: Stratification<V>,
+            delimiters: Delimiters<V>,
             partitioner: (IntArray) -> MutableList<PK>,
             valueSupplier: (PK) -> V?,
             nodeSplitter: (Stratum<PK>) -> Unit
         ) {
             if (children != null) // reached leaf node
             {
-                children!!.values.forEach { it.split(strat, partitioner, valueSupplier, nodeSplitter ) }
+                children!!.values.forEach { it.split(delimiters, partitioner, valueSupplier, nodeSplitter ) }
                 return
             }
             // provide the dimension info to each affected leaf
-            this.stratification = strat
+            this.limits = delimiters
             // sort node key-partition using given property value comparator
             val partition = partitioner(bounds)
             try {
-                partition.sortWith { k1, k2 -> strat.valueComparator.compare(valueSupplier(k1), valueSupplier(k2)) }
+                partition.sortWith { k1, k2 -> delimiters.valueComparator.compare(valueSupplier(k1), valueSupplier(k2)) }
             } catch (e: NullPointerException) {
-                error("Missing value(s) for $strat")
+                error("Missing value(s) for $delimiters")
             }
-            if (strat.splitOrder.isEmpty()) {
+            if (delimiters.splitOrder.isEmpty()) {
                 // split points empty? add all distinct values as split point
                 children = TreeMap() // infinity placeholder range: Range.infinite() to new PartitionNode( this, this.bounds )
                 if (partition.isEmpty())
@@ -468,7 +489,7 @@ class TablePartitioner<PK: Any>(
                 var offset = bounds[0]
                 for (i in 1 until partition.size) {
                     val v2: V = valueSupplier(partition[i])!!
-                    if (strat.valueComparator.compare(v2, v) != 0) {
+                    if (delimiters.valueComparator.compare(v2, v) != 0) {
                         v = v2
                         vNode.bounds[0] = offset
                         vNode.bounds[1] = bounds[0] + i
@@ -480,26 +501,25 @@ class TablePartitioner<PK: Any>(
                 vNode.bounds[1] = bounds[1]
                 return
             }
-            val splitKeys = IntArray(strat.splitOrder.size)
-            var i = 0
-            var k = 0
-            while (i != strat.splitOrder.size) {
-                while (k < partition.size && strat.valueComparator.compare(valueSupplier(partition[k]), strat.splitOrder[i]) < 0)
-                    k++ // value[key] > point[i] : put key in next range
-                splitKeys[i] = bounds[0] + k
-                i++
+            val splitKeys = IntArray(delimiters.splitOrder.size)
+            var splitIndex = 0
+            for(i in 0 until delimiters.splitOrder.size) {
+                val splitValue = delimiters.splitOrder[i]
+                while (splitIndex < partition.size && delimiters.valueComparator.compare(valueSupplier(partition[splitIndex]), splitValue) < 0)
+                    splitIndex++
+                splitKeys[i] = bounds[0] + splitIndex
             }
 
             // map split points to respective sub-partition bounds
-            val map = IntStream.range(0, strat.splitOrder.size + 1)
+            val map = IntStream.range(0, delimiters.splitOrder.size + 1)
                 .collect(
                     // create new partition's range-bounds mapping
-                    { TreeMap { r1, r2 -> Range.compare(r1 as Range<V>, r2 as Range<V>, strat.valueComparator) } },
+                    { TreeMap { r1, r2 -> Range.compare(r1 as Range<V>, r2 as Range<V>, delimiters.valueComparator) } },
                     // add split node (value range and key bounds)
                     { map, j: Int ->
-                        val range: Range<*> = toRange(strat.splitOrder, j)
-                        //log.trace( "Splitting {} -> {}", i, range );
-                        val next = Stratum(this, range, toBounds(bounds, splitKeys, j))
+                        val range: Range<*> = toRange(delimiters.splitOrder, j)
+                        val next = Stratum(parent = this, parentRange = range,
+                            indexRange = toBounds(bounds, splitKeys, j), limits = delimiters)
                         val old: Stratum<PK>? = map.put(range, next)
                         if (old != null)
                             log.warn("Not mutually exclusive? {} vs {}", old.parentRange, next.parentRange)
@@ -508,7 +528,7 @@ class TablePartitioner<PK: Any>(
             children = map
         }
 
-        fun valueNode(bin: Range<*>, nodeSplitter: (Stratum<PK>) -> Unit): Stratum<PK> =
+        private fun valueNode(bin: Range<*>, nodeSplitter: (Stratum<PK>) -> Unit): Stratum<PK> =
             children!!.computeIfAbsent(bin) {
                 val prev: Range<*>? = children!!.lowerKey(bin)
                 val i: Int = if (prev == null)
