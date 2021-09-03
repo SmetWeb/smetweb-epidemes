@@ -34,7 +34,12 @@ class StratifiedSamplerTest {
 
         val binCounts = mutableMapOf<Range<*>, MutableList<Comparable<*>>>()
         (1..100)
-            .map { sampler.match(BigDecimal.ONE).draw() }
+            .map { sampler.match(BigDecimal.ONE)
+                .draw { k, v, args ->
+                    log.trace( "Sampler strata {} deviation: {} in {}", args, k.simpleName, v );
+                    true
+                }
+            }
             .forEach { tuple ->
                 table.properties.forEach { prop ->
                     val value = tuple[prop]!! as Comparable<*>

@@ -26,8 +26,8 @@ interface StratifiedSampler<PK: Any> : ProbabilityDistribution<Table.Tuple<PK>> 
         parent.draw()
 
     @Suppress("UNCHECKED_CAST")
-    fun draw(defaultOnDeviation: (
-        strata: List<Comparable<*>?>, deviant: Class<out Table.Property<*>>, default: Range<*>) -> Boolean =
+    fun draw(defaultOnDeviation:
+                 (deviant: Class<out Table.Property<*>>, default: Range<*>, strata: Array<Comparable<*>?>) -> Boolean =
                  { _, _, _ -> true }
     ): Table.Tuple<PK> =
         parent.draw(defaultOnDeviation)
@@ -101,7 +101,8 @@ interface StratifiedSampler<PK: Any> : ProbabilityDistribution<Table.Tuple<PK>> 
         fun <PK: Any> of(
             source: Table<PK>,
             rng: PseudoRandom,
-            defaultOnDeviation: (strata: List<Comparable<*>?>, deviant: Class<out Table.Property<*>>, default: Range<*>) -> Boolean =
+            defaultOnDeviation:
+                (deviant: Class<out Table.Property<*>>, default: Range<*>, strata: Array<Comparable<*>?>) -> Boolean =
                 { _, _, _, -> true },
             validation: Boolean = false,
             onError: (Throwable) -> Unit = Throwable::printStackTrace
@@ -116,13 +117,12 @@ interface StratifiedSampler<PK: Any> : ProbabilityDistribution<Table.Tuple<PK>> 
                     draw(defaultOnDeviation)
 
                 override fun draw(
-                    defaultOnDeviation: (strata: List<Comparable<*>?>, deviant: Class<out Table.Property<*>>, default: Range<*>) -> Boolean
+                    defaultOnDeviation:
+                        (deviant: Class<out Table.Property<*>>, default: Range<*>, strata: Array<Comparable<*>?>) -> Boolean
                 ): Table.Tuple<PK> {
-                    val strata = filter
-                    // TODO draw several times, once for each (non-empty) stratification and once for the drawn stratum's elements
-                    val keys: List<PK> = partitioner.nearestKeys(
-                        { deviant, bin -> defaultOnDeviation(strata, deviant, bin) },
-                        *strata.toTypedArray())
+                    val strata = filter.toTypedArray()
+                    filter.clear() // prevents accumulation before each draw
+                    val keys = partitioner.nearestKeys(*strata) { deviant, bin -> defaultOnDeviation(deviant, bin, strata) }
                     return source.select(rng.nextElement(keys))!!
                 }
             }
