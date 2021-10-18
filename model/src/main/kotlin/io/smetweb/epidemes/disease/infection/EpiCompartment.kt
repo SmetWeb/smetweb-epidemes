@@ -1,6 +1,6 @@
 package io.smetweb.epidemes.disease.infection
 
-import io.smetweb.ref.Ref
+import io.smetweb.refer.Ref
 
 
 /**

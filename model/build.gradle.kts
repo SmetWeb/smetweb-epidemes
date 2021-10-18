@@ -36,6 +36,8 @@ dependencies {
 //		exclude(module = "org.apache.logging.log4j", group = "log4j-to-slf4j")
 //	}
 	api(group = "org.springframework.boot", name = "spring-boot-starter-log4j2")
+	api(group = "com.fasterxml.jackson.core", name = "jackson-databind") // required by log4j2
+	api(group = "com.fasterxml.jackson.dataformat", name = "jackson-dataformat-yaml") // required by log4j2
 	api(group = "org.springframework.boot", name = "spring-boot-starter-data-jpa")
 	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")
 

@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.stream.Collectors
 import java.util.stream.Stream
+import kotlin.streams.toList
 
 fun <T> deterministic(value: T): ProbabilityDistribution<T> =
         object: ProbabilityDistribution<T> {
@@ -106,6 +107,9 @@ fun PseudoRandom.triangular(min: Number, mode: Number, max: Number): Probability
         else maxBD.subtract(BigDecimal.ONE.subtract(p).multiply(upperTimesTotal).sqrt())
     }
 }
+
+fun <V: Any> PseudoRandom.categorical(pmf: Stream<Pair<V, BigDecimal>>): ProbabilityDistribution<V> =
+    categorical(pmf.toList())
 
 fun <V: Any> PseudoRandom.categorical(pmf: Iterable<Pair<V, BigDecimal>>): ProbabilityDistribution<V> {
     // determine sum of weights

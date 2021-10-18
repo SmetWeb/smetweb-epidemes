@@ -32,14 +32,17 @@ data class ScenarioConfig(
 
 ) {
 
+        val defaultZone: ZoneId =
+                ZoneId.systemDefault()
+
         val start: ZonedDateTime =
-                this.offsetDate.parseZonedDateTime()
+                this.offsetDate.parseZonedDateTime(defaultZone)
 
         val epoch: Instant =
                 this.start.toInstant()
 
         val duration: Quantity<Time> =
-                this.durationPeriod.parseTimeQuantity(this.epoch)
+                this.durationPeriod.parseTimeQuantity(offset = this.epoch)
 
         override fun toString(): String =
                 "${ScenarioConfig::class.java.simpleName}[name: $setupName, seed: $randomSeed, " +

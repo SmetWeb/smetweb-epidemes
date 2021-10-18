@@ -14,7 +14,7 @@ allOpen {
 // project classpath
 dependencies {
 	// `project` configuration bean reads values from file `gradle.properties`
-	val kotlinxVersion: String by project
+	val coroutinesVersion: String by project
 	val persistenceApiVersion: String by project
 	val concurrentApiVersion: String by project
 //	val kafkaVersion: String by project
@@ -38,7 +38,7 @@ dependencies {
 
 	api(kotlin("stdlib-jdk8"))
 	api(kotlin("reflect"))
-	api(group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx3", version = kotlinxVersion)
+	api(group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-rx3", version = coroutinesVersion)
 
 //	api(group = "ch.qos.logback", name = "logback-classic")
 	api(group = "org.apache.logging.log4j", name = "log4j", version = "2.13.3")
@@ -82,6 +82,10 @@ dependencies {
 
 	// Joda Time (for parsing ISO durations, etc.)
 	api(group = "joda-time", name = "joda-time", version = jodaTimeVersion)
+	// RFC 5545 and 2445 (iCal) recurrence rule (RRULE) - https://mvnrepository.com/artifact/org.dmfs/lib-recur
+	api(group = "org.dmfs", name = "lib-recur", version = "0.12.2")
+	// Quartz implementation of CRON-like scheduler https://mvnrepository.com/artifact/org.quartz-scheduler/quartz
+	api(group = "org.quartz-scheduler", name = "quartz", version = "2.3.2")
 
 	// Jackson for JSON de/serialization
 	api(group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jdk8")

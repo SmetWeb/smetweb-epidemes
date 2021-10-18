@@ -2,9 +2,9 @@ package io.smetweb.sim.event
 
 import com.fasterxml.jackson.core.TreeNode
 import com.fasterxml.jackson.module.kotlin.treeToValue
-import io.smetweb.ref.IdRef
-import io.smetweb.ref.IdRef.IntRef
-import io.smetweb.ref.Ref
+import io.smetweb.refer.IdRef
+import io.smetweb.refer.IdRef.IntRef
+import io.smetweb.refer.Ref
 import io.smetweb.fact.*
 import io.smetweb.json.TreeNodeJpaConverter
 import io.smetweb.uuid.UuidJpaConverter

@@ -21,7 +21,10 @@ interface RxClockService: ClockService {
 
 	fun trigger(schedule: Observable<TimeRef>): Observable<TimeRef>
 
-	fun trigger(firstTime: TimeRef, repeater: (TimeRef) -> TimeRef? = { null }): Observable<TimeRef> {
+	fun trigger(
+		firstTime: TimeRef,
+		repeater: (TimeRef) -> TimeRef? = { null }
+	): Observable<TimeRef> {
 		val schedule = PublishSubject.create<TimeRef>()
 		return trigger(schedule = Observable.just(firstTime)
 				.concatWith(schedule))
@@ -35,38 +38,42 @@ interface RxClockService: ClockService {
 	}
 
 	override fun trigger(
-			listener: (TimeRef) -> Unit,
-			disposer: (Throwable?) -> Unit,
-			firstTime: TimeRef,
-			repeater: (TimeRef) -> TimeRef?
+		event: (TimeRef) -> Unit,
+		disposer: (Throwable?) -> Unit,
+		firstTime: TimeRef,
+		repeater: (TimeRef) -> TimeRef?
 	) {
-		trigger(firstTime, repeater).subscribe(listener, disposer) { disposer(null) }
+		trigger(firstTime, repeater).subscribe(event, disposer) { disposer(null) }
 	}
 
 	/** @see [Observable.timer] */
 	fun timer(
-			delay: Number,
-			unit: TimeUnit = TimeUnit.MILLISECONDS
-	): Single<TimeRef> = trigger(timeAfter(delay, unit)).firstOrError()
+		delay: Number,
+		unit: TimeUnit = TimeUnit.MILLISECONDS
+	): Single<TimeRef> =
+		trigger(timeAfter(delay, unit)).firstOrError()
 
 	/** @see [Observable.interval] */
 	fun interval(
-			initialDelay: Number? = null,
-			period: Number,
-			unit: TimeUnit = TimeUnit.MILLISECONDS,
-			interval: Quantity<Time> = period.toQuantity(unit)
-	): Observable<TimeRef> = trigger(timeAfter(initialDelay ?: 0L, unit)) {
-		timeAfter(interval)
-	}
+		initialDelay: Number? = null,
+		period: Number,
+		unit: TimeUnit = TimeUnit.MILLISECONDS,
+		interval: Quantity<Time> = period.toQuantity(unit)
+	): Observable<TimeRef> =
+		trigger(timeAfter(initialDelay ?: 0L, unit)) {
+			timeAfter(interval)
+		}
 
 	/** @see [Observable.delay] operator */
 	fun <V: Any> Observable<V>.delayManaged(
-			delay: Number,
-			unit: TimeUnit = TimeUnit.MILLISECONDS,
-			scheduler: RxClockService = this@RxClockService
-	): Observable<V> = Observable@this.flatMapSingle { value ->
-		scheduler.timer(delay, unit).map { value }
-	}
+		delay: Number,
+		unit: TimeUnit = TimeUnit.MILLISECONDS,
+		scheduler: RxClockService = this@RxClockService
+	): Observable<V> =
+		Observable@this.flatMapSingle { value ->
+			scheduler.timer(delay, unit).map { value }
+		}
+
 	/**
 	 * [RxScheduledFuture] decorator wraps a [CompletableFuture]
 	 * that is linked to its [Observable] event [schedule]
@@ -101,10 +108,11 @@ interface RxClockService: ClockService {
 						emitter.onError(e) // emit failure that occurred in the repeater
 						null
 					}
-				} // TODO .doAfterNext( /* trigger execution *after* all subscribers handled the 'next execution time' */)
-						.subscribe({}, // non-null result completes the future, else continue
-								emitter::onError, // simulator failed
-								emitter::onComplete) // trigger or simulation completed
+				}
+				// TODO .doAfterNext( /* trigger execution *after* all subscribers handled the 'next execution time' */)
+				.subscribe({}, // non-null result completes the future, else continue
+						emitter::onError, // simulator failed
+						emitter::onComplete) // trigger or simulation completed
 			}
 	): ScheduledFuture<V> {
 

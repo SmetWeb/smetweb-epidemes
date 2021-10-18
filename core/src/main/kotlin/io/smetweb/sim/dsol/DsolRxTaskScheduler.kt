@@ -5,9 +5,9 @@ import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.smetweb.time.TimeRef
 import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
-import io.smetweb.time.ManagedClock
 import io.smetweb.time.ManagedClockService
 import io.smetweb.time.ManagedClockService.ClockStatus.*
+import io.smetweb.time.ManagedClockService.ManagedClock
 import io.smetweb.time.ManagedRxTaskScheduler
 import nl.tudelft.simulation.dsol.experiment.Experiment
 import nl.tudelft.simulation.dsol.experiment.ReplicationInterface.*
@@ -16,10 +16,8 @@ import nl.tudelft.simulation.dsol.simulators.DESSSimulatorInterface.*
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulator
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.unit.Units
 import java.io.Serializable
 import java.math.BigDecimal
-import java.time.Clock
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.atomic.AtomicReference
@@ -31,10 +29,14 @@ import javax.measure.quantity.Time
  */
 @Suppress("REDUNDANT_LABEL_WARNING")
 class DsolRxTaskScheduler(
-		private val scenarioConfig: ScenarioConfig,
-		private val simSupplier: (id: Serializable) -> DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> =
-				{ id: Serializable -> DEVSSimulator(id) } , // default constructs a standard (i.e. single-threaded) simulator instance
-		private val treatment: DsolTreatment = DsolTreatment() // default treatment is steady-state (i.e. non-terminating)
+	private val scenarioConfig: ScenarioConfig,
+
+	// default constructs a standard (i.e. single-threaded) simulator instance
+	private val simSupplier: (id: Serializable) -> DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef> =
+			{ id: Serializable -> DEVSSimulator(id) },
+
+	// default treatment is steady-state (i.e. non-terminating)
+	private val treatment: DsolTreatment = DsolTreatment(scenarioConfig)
 ): ManagedRxTaskScheduler {
 
 	private val log = getLogger()
@@ -64,22 +66,20 @@ class DsolRxTaskScheduler(
 		result
 	}
 
-	private val simulator: DEVSSimulatorInterface<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>
+	private val simulator
 		get() = this.experiment.simulator
 
-	fun model(): DsolModel = this.experiment.model as DsolModel
+	fun model() = this.experiment.model as DsolModel
 
 	// ClockService
 
-	private val dsolClock: Clock = ManagedClock(::time, { t -> t.toInstant(this.epoch) })
+	override val now = ManagedClock(::time, { t -> t.toInstant(this.epoch) })
 
-	override fun clock(): Clock = this.dsolClock
+	override fun time() = this.simulator.simTime ?: DsolTimeRef.T_ZERO
 
-	override fun time(): DsolTimeRef = this.simulator.simTime ?: DsolTimeRef.T_ZERO
+	override fun timeOf(date: Date) = DsolTimeRef.of(date, this.epochDate)
 
-	override fun timeOf(date: Date): DsolTimeRef = DsolTimeRef.of(date, this.epochDate)
-
-	override fun timeOf(instant: Instant): DsolTimeRef = DsolTimeRef.of(instant, this.epoch)
+	override fun timeOf(instant: Instant) = DsolTimeRef.of(instant, this.epoch)
 
 	// ManagedClockService
 
@@ -99,23 +99,23 @@ class DsolRxTaskScheduler(
 
 	override fun trigger(schedule: Observable<TimeRef>): Observable<TimeRef> =
 			// TODO map cancellable [SimEventInterface] through a [PublishSubject] rather than [AtomicReference]?
-			Observable.create { emitter ->
-				val nextEvent = AtomicReference<SimEventInterface<DsolTimeRef>>()
-				schedule.subscribe( { triggerTime ->
-					val now = time()
-					val executionTime = maxOf(now, when(triggerTime) {
-						is DsolTimeRef -> triggerTime
-						else -> DsolTimeRef.of(triggerTime.get())
-					})
-					// check whether we are repeating (not initiating) at the current timeRef
-					if(nextEvent.get() != null && executionTime == now) {
-						log.warn("Potential infinite looping: {} -> {}", now, executionTime)
-					}
-					nextEvent.set(this.simulator.scheduleEventAbs(executionTime) {
-						emitter.onNext(DsolTaskScheduler@time()) // actual (valid) time may differ from emitted one
-					})
-				}, emitter::onError, emitter::onComplete )
-				emitter.setCancellable { nextEvent.get()?.let { this.simulator.cancelEvent(it) } }
-			}
+		Observable.create { emitter ->
+			val nextEvent = AtomicReference<SimEventInterface<DsolTimeRef>>()
+			schedule.subscribe( { triggerTime ->
+				val now = time()
+				val executionTime = maxOf(now, when(triggerTime) {
+					is DsolTimeRef -> triggerTime
+					else -> DsolTimeRef.of(triggerTime.get())
+				})
+				// check whether we are repeating (not initiating) at the current timeRef
+				if(nextEvent.get() != null && executionTime == now) {
+					log.warn("Potential infinite looping: {} -> {}", now, executionTime)
+				}
+				nextEvent.set(this.simulator.scheduleEventAbs(executionTime) {
+					emitter.onNext(DsolTaskScheduler@time()) // actual (valid) time may differ from emitted one
+				})
+			}, emitter::onError, emitter::onComplete )
+			emitter.setCancellable { nextEvent.get()?.let { this.simulator.cancelEvent(it) } }
+		}
 
 }

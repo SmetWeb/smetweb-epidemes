@@ -1,8 +1,8 @@
 package io.smetweb.fact
 
-import io.smetweb.ref.NameRef
-import io.smetweb.ref.IdRef
-import io.smetweb.ref.Ref
+import io.smetweb.refer.NameRef
+import io.smetweb.refer.IdRef
+import io.smetweb.refer.Ref
 import io.smetweb.time.TimeRef
 
 interface CoordinationFact {

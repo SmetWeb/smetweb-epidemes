@@ -6,6 +6,7 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.format.FormatBehavior
 import tech.units.indriya.format.NumberDelimiterQuantityFormat
 import tech.units.indriya.function.DefaultNumberSystem
+import tech.units.indriya.quantity.NumberQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import java.math.BigDecimal
@@ -87,14 +88,13 @@ fun <Q : Quantity<Q>> Quantity<Q>.toUnit(unit: Unit<Q>): ComparableQuantity<Q> =
 
 /** String, etc. */
 fun <Q: Quantity<Q>> CharSequence.parseQuantity(quantity: Class<Q>): ComparableQuantity<Q> =
-        Quantities.getQuantity(this).asType(quantity) as ComparableQuantity<Q>
+    parseQuantity().asType(quantity) as ComparableQuantity<Q>
 
 fun CharSequence.parseQuantity(): ComparableQuantity<*> =
     try {
-        NumberDelimiterQuantityFormat.getInstance(FormatBehavior.LOCALE_NEUTRAL)
-                .parse(this, ParsePosition(0)) as ComparableQuantity<*>
+        NumberQuantity.parse(this) as ComparableQuantity<*>
     } catch (e: MeasurementParseException) {
-        throw IllegalArgumentException("Could not parse '${e.parsedString}'", e)
+        throw IllegalArgumentException("Could not parse '${e.parsedString}': ${e.message}", e)
     }
 
 @Suppress("UNCHECKED_CAST")
@@ -117,11 +117,10 @@ fun parsedStringOrMessage(e: Throwable): String? =
                 e.message
             }
 
-fun <Q: Quantity<Q>> Quantity<Q>.toPlainString(): String =
-        this.decimalValue().toPlainString() + VALUE_UNIT_SEPARATOR + this.unit
-
-fun <Q: Quantity<Q>> Quantity<Q>.toPlainString(scale: Int): String =
-        this.decimalValue().setScale(scale, RoundingMode.HALF_UP).toPlainString() + VALUE_UNIT_SEPARATOR + this.unit
+fun Quantity<*>.toPlainString(scale: Int? = null): String =
+    decimalValue()
+        .apply { if (scale != null) setScale(scale, RoundingMode.HALF_UP) }
+        .toPlainString() + VALUE_UNIT_SEPARATOR + unit
 
 @Throws(ArithmeticException::class)
 fun <Q: Quantity<Q>> Quantity<Q>.value(unit: Unit<Q>): Number =

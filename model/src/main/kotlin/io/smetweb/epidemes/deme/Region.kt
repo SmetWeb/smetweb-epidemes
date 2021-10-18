@@ -1,7 +1,7 @@
-package io.smetweb.epidemes.data
+package io.smetweb.epidemes.deme
 
 import io.smetweb.math.LatLong
-import io.smetweb.ref.Named
+import io.smetweb.refer.Named
 import javax.measure.Quantity
 import javax.measure.quantity.Area
 

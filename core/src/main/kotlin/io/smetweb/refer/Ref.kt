@@ -1,9 +1,9 @@
-package io.smetweb.ref
+package io.smetweb.refer
 
 import java.util.function.Supplier
 
 /**
- * [Ref] is a wrapper of some reference value of type [T] which may be unwrapped with [get]
+ * [Ref] is a [Supplier] wrapping some reference value of type [T], which as supplied by (or unwrapped with) [get]
  */
 interface Ref<T>: Supplier<T> {
 

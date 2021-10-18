@@ -1,4 +1,4 @@
-package io.smetweb.ref
+package io.smetweb.refer
 
 interface Named {
     val nameRef: NameRef

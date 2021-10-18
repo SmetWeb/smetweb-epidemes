@@ -1,4 +1,4 @@
-package io.smetweb.ref
+package io.smetweb.refer
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue

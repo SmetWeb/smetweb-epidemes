@@ -24,29 +24,24 @@ import javax.measure.quantity.Time
 data class DsolTimeRef(
 		private var absoluteTime: ComparableQuantity<Time>,
 		override val value: ComparableQuantity<Time> = absoluteTime
-): SimTime<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>(absoluteTime), TimeRef.ConcreteOrdinal<DsolTimeRef> {
+): SimTime<ComparableQuantity<Time>, BigDecimal, DsolTimeRef>(absoluteTime), TimeRef {
 
 	/** always convert to [BigDecimal], for consistent [hashCode] values among the various [Number] subtypes */
 	constructor(value: Number, unit: Unit<Time>):
 			this(absoluteTime = value.toDecimal().toQuantity(unit))
 
 	constructor(value: Number):
-			this(value, TimeRef.BASE_UNIT)
+			this(value, BASE_UNIT)
 
 	private constructor(time: List<String>): this(
 			Quantities.getQuantity(
 					BigDecimal(time[0]),
 					when(time.size){
-						1 -> TimeRef.BASE_UNIT
+						1 -> BASE_UNIT
 						2 -> UNIT_FORMAT.parse(time[1]).asType(Time::class.java)
 						else -> throw IllegalArgumentException("Unable to parse model quantity from: $time")
 					}
 			))
-
-	init {
-		// TODO move elsewhere?
-		Calculus.setCurrentNumberSystem(NUMBER_SYSTEM)
-	}
 
 	@JsonCreator
 	constructor(time: String): this(time.trim().split(VALUE_UNIT_SEPARATOR))
@@ -55,7 +50,8 @@ data class DsolTimeRef(
 
 	constructor(duration: Duration): this(duration.toQuantity())
 
-	override fun compareTo(that: DsolTimeRef): Int = super<TimeRef.ConcreteOrdinal>.compareTo(that)
+	override operator fun compareTo(other: DsolTimeRef): Int =
+		super<TimeRef>.compareTo(other)
 
 	override fun set(value: ComparableQuantity<Time>) {
 		this.absoluteTime = value
@@ -72,14 +68,9 @@ data class DsolTimeRef(
 		return get() == (other as DsolTimeRef).get()
 	}
 
-	private var hashCode: Int? = null
+	private val hashCode: Int by lazy { value.to(BASE_UNIT).decimalValue().hashCode() }
 
-	override fun hashCode(): Int {
-		if (hashCode == null) {
-			hashCode = get().toQuantity().to(TimeRef.BASE_UNIT).value.hashCode()
-		}
-		return hashCode!!
-	}
+	override fun hashCode(): Int = hashCode
 
 	override fun copy() = DsolTimeRef(get())
 
@@ -98,10 +89,12 @@ data class DsolTimeRef(
 	}
 
 	override fun diff(absoluteTime: ComparableQuantity<Time>): BigDecimal {
-		return get().subtract(absoluteTime).to(TimeRef.BASE_UNIT).value as BigDecimal
+		return get().subtract(absoluteTime).to(BASE_UNIT).value as BigDecimal
 	}
 
 	companion object {
+
+		val BASE_UNIT: Unit<Time> = TimeRef.BASE_UNIT
 
 		@JvmStatic
 		val T_ZERO: DsolTimeRef = DsolTimeRef(TimeRef.ZERO_UNITS)

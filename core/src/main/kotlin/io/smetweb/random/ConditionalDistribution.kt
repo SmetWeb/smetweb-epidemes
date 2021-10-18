@@ -8,6 +8,10 @@ interface ConditionalDistribution<T, C> {
 
     companion object {
 
+        @JvmStatic
+        fun <T, C> of(distGen: (C) -> ProbabilityDistribution<T>): ConditionalDistribution<T, C> =
+            of(param1Gen = { it }, distGen = distGen)
+
         /**
          * @param [T] the type of value drawn by the conditional distributions
          * @param [C] the type of condition for selecting a distribution
@@ -46,7 +50,7 @@ interface ConditionalDistribution<T, C> {
          * @param distGen distribution generator taking one parameter
          * @param paramMap a [Map] of the first parameter per condition
          * @return a [ConditionalDistribution]
-        </X></C></T> */
+         */
         fun <T, C, X> of(
                 paramMap: Map<C, X>,
                 distGen: (X) -> ProbabilityDistribution<T>

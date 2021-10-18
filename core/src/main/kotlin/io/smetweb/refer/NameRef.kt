@@ -1,4 +1,4 @@
-package io.smetweb.ref
+package io.smetweb.refer
 
 /**
  * A [NameRef] is a [Ref] wrapping any ([Comparable]) value

@@ -23,78 +23,89 @@ import javax.measure.quantity.Time
  * including a [ClockTimer] (extending the Java 1.3 [Timer] API),
  * but also supporting Java 1.8 functional APIs [Consumer] and [UnaryOperator]
  *
- * TODO also provide `java.util.Flow` reactive API from Java 9 ?
+ * TODO also provide [java.util.concurrent.Flow] reactive API from Java 9 ?
  */
 interface ClockService {
 
-	fun clock(): Clock = Clock.systemUTC()
+	/** @return the common [Clock] instance, actual (e.g. [Clock.systemUTC]) or virtual */
+	val now: Clock
+		get() = Clock.systemUTC()
 
-	val zone: ZoneId
-		get() = clock().zone
+	/** @return the common clock's current time-zone [ZoneId] */
+	fun zone(): ZoneId =
+		now.zone
 
+	/** @return the common clock's epoch as [Instant], with nanosecond precision */
 	val epoch: Instant
 		get() = Instant.EPOCH
 
+	/** @return the common clock's epoch as [Date], with millisecond precision */
 	val epochDate: Date
 		get() = Date.from(this.epoch)
 
-	fun instant(): Instant = clock().instant()
+	/** @return the current time as [Instant], with nanosecond precision */
+	fun instant(): Instant = now.instant()
 
+	/** @return the current time as [Date], with millisecond precision */
 	fun date(): Date = Date.from(instant())
 
+	/** @return the current time as [TimeRef], with nanosecond precision*/
 	fun time(): TimeRef = timeOf(instant())
 
+	/** @return the common clock's [TimeRef] value for given [instant] */
 	fun timeOf(instant: Instant): TimeRef = TimeRef.of(instant, this.epoch)
 
+	/** @return the common clock's [TimeRef] value for given [date] */
 	fun timeOf(date: Date): TimeRef = TimeRef.of(date, this.epochDate)
 
+	/** @return the common clock's [TimeRef] value for given [delayMillis] from now */
 	fun timeAfter(delayMillis: Long): TimeRef =
 		timeAfter(delayMillis, TimeUnit.MILLISECONDS)
 
+	/** @return the common clock's [TimeRef] value for given [unit]s of [delay] from now */
 	fun timeAfter(delay: Number, unit: TimeUnit = TimeUnit.MILLISECONDS): TimeRef =
 		timeAfter(delay.toQuantity(unit))
 
+	/** @return the common clock's [TimeRef] value for given [TemporalUnit]s of [delay] from now */
 	fun timeAfter(delay: Number, unit: TemporalUnit = ChronoUnit.MILLIS): TimeRef =
 		timeAfter(delay.toQuantity(unit))
 
-	fun timeAfter(duration: Duration): TimeRef =
-		timeAfter(duration.toQuantity())
+	/** @return the common clock's [TimeRef] value for given [Duration] of [delay] from now */
+	fun timeAfter(delay: Duration): TimeRef =
+		timeAfter(delay.toQuantity())
 
+	/** @return the common clock's [TimeRef] value for given [Quantity] of [Time] [delay] from now */
 	fun timeAfter(delay: Quantity<Time>): TimeRef =
 		TimeRef.of(time().get().add(delay))
 
+	/** @return the common clock's [Date] value for given [TimeUnit]s of [delay] from now */
 	fun dateAfter(delay: Number, unit: TimeUnit): Date =
 		timeAfter(delay, unit).toDate(this.epochDate)
 
+	/** @return the [Quantity] of [Time] until the common clock reaches given [timeRef] (or the negative amount that has passed since) */
 	fun durationUntil(timeRef: TimeRef): ComparableQuantity<Time> =
 		timeRef.get().subtract(time().get())
 
+	/** @return the [Quantity] of [Time] until the common clock reaches given [instant] (or the negative amount that has passed since) */
 	fun durationUntil(instant: Instant): ComparableQuantity<Time> =
 		durationUntil(timeOf(instant))
 
+	/** @return the [Quantity] of [Time] until the common clock reaches given [date] (or the negative amount that has passed since) */
 	fun durationUntil(date: Date): ComparableQuantity<Time> =
 		durationUntil(timeOf(date))
 
-	fun trigger(listener: (TimeRef) -> Unit,
-				disposer: (Throwable?) -> Unit = {},
-				firstTime: TimeRef,
-				repeater: (TimeRef) -> TimeRef? = { null })
+	/** @return */
+	fun trigger(
+		event: (TimeRef) -> Unit,
+		disposer: (Throwable?) -> Unit = { /* empty */ },
+		firstTime: TimeRef,
+		repeater: (TimeRef) -> TimeRef? = { null })
 
-	/** triggering callback(s) with functional APIs [Consumer] and [UnaryOperator] (as of Java 1.8) */
-	fun trigger(listener: Consumer<TimeRef>, firstTime: TimeRef, repeater: UnaryOperator<TimeRef?>) =
-		trigger(listener = listener::accept, firstTime = firstTime) { subsequentTime ->
-			repeater.apply(subsequentTime)
-		}
+	/** call given [event] at [firstTime], and possibly recur as per [repeater]'s schedule (as of Java 1.8) */
+	fun trigger(event: Consumer<TimeRef>, firstTime: TimeRef, repeater: UnaryOperator<TimeRef?>? = null) =
+		trigger(event = event::accept, firstTime = firstTime, repeater = repeater?.let { it::apply } ?: { null })
 
-	/** triggering callback(s) with functional APIs [Consumer] and [UnaryOperator] (as of Java 1.8) */
-	fun trigger(listener: Consumer<TimeRef>, repeater: UnaryOperator<TimeRef?>) =
-		// first calculate initial time ref
-		repeater.apply(time())?.let { firstTime ->
-			// then schedule repeats
-			trigger(listener = listener, firstTime = firstTime, repeater = repeater)
-		}
-
-	/** provides the [Timer] scheduling API (as of Java 1.3) */
+	/** provides a new [Timer] scheduling API (as of Java 1.3) */
 	fun timer(): Timer = ClockTimer(this)
 
 	/** [ClockTimer] provides the [Timer] scheduling API (as of Java 1.3) triggered by a [ClockService] */

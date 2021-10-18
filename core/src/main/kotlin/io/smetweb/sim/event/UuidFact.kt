@@ -1,10 +1,10 @@
 package io.smetweb.sim.event
 
-import io.smetweb.ref.IdRef
+import io.smetweb.refer.IdRef
 import io.smetweb.uuid.UuidNameRef
 import io.smetweb.time.TimeRef
-import io.smetweb.ref.IdRef.IntRef
-import io.smetweb.ref.Ref
+import io.smetweb.refer.IdRef.IntRef
+import io.smetweb.refer.Ref
 import io.smetweb.fact.*
 import io.smetweb.uuid.UuidRef
 import java.util.*

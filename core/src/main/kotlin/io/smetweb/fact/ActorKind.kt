@@ -3,7 +3,7 @@ package io.smetweb.fact
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Observer
 import io.reactivex.rxjava3.disposables.Disposable
-import io.smetweb.ref.NameRef
+import io.smetweb.refer.NameRef
 
 /**
  * An [ActorKind] can participate in exchanges of [ResultExchange] patterns

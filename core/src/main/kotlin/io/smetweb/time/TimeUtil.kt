@@ -2,6 +2,7 @@ package io.smetweb.time
 
 import io.smetweb.math.*
 import si.uom.NonSI
+import tech.units.indriya.AbstractUnit
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.quantity.time.TimeQuantities
@@ -28,7 +29,22 @@ val NANOSECOND: Unit<Time> = TimeQuantities.NANOSECOND
 
 val HALF_DAY: Unit<Time> = Units.DAY.divide(2.0)
 
-fun CharSequence.parseZonedDateTime(): ZonedDateTime =
+private val TIME_UNITS_IN_SECONDS = mutableMapOf<Unit<Time>, Double>()
+
+private fun Unit<Time>.toSeconds() =
+    synchronized (TIME_UNITS_IN_SECONDS) {
+        TIME_UNITS_IN_SECONDS.computeIfAbsent(this) { it.getConverterTo(Units.SECOND).convert(1.0) }
+    }
+
+fun TimeRef.compareBySmallestUnit(other: TimeRef): Int {
+    return if(this.get().unit.toSeconds() > other.get().unit.toSeconds()) {
+        -1 * other.get().compareTo(get())
+    } else {
+        get().compareTo(other.get()) // no need to invert if this' unit is same or less than that's unit
+    }
+}
+
+fun CharSequence.parseZonedDateTime(defaultZone: ZoneId = ZoneId.systemDefault()): ZonedDateTime =
         try {
             // e.g. "2007-12-03T10:15:30+01:00[Europe/Paris]"
             ZonedDateTime.parse(this)
@@ -39,11 +55,11 @@ fun CharSequence.parseZonedDateTime(): ZonedDateTime =
             } catch(e: DateTimeParseException) {
                 try {
                     // e.g. "2007-12-03T10:15:30"
-                    LocalDateTime.parse(this).atZone(ZoneId.systemDefault())
+                    LocalDateTime.parse(this).atZone(defaultZone)
                 } catch(e: DateTimeParseException) {
                     try {
                         // e.g. "2007-12-03"
-                        LocalDate.parse(this).atStartOfDay(ZoneId.systemDefault())
+                        LocalDate.parse(this).atStartOfDay(defaultZone)
                     } catch(e: DateTimeParseException) {
                         ZonedDateTime.now()
                     }
@@ -53,11 +69,11 @@ fun CharSequence.parseZonedDateTime(): ZonedDateTime =
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.value(unit: TimeUnit): Number =
-        this.toUnit(unit).value
+        this.to(unit).value
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.value(unit: TemporalUnit): Number =
-        this.toUnit(unit).value
+        this.to(unit).value
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.decimalValue(timeUnit: TimeUnit): BigDecimal =
@@ -76,28 +92,28 @@ fun Quantity<Time>.decimalValue(temporalUnit: TemporalUnit, scale: Int): BigDeci
         this.value(temporalUnit).scale(scale)
 
 fun Quantity<Time>.intValue(timeUnit: TimeUnit): Int =
-        this.toUnit(timeUnit).intValue()
+        this.to(timeUnit).intValue()
 
 fun Quantity<Time>.intValue(temporalUnit: TemporalUnit): Int =
-        this.toUnit(temporalUnit).intValue()
+        this.to(temporalUnit).intValue()
 
 fun Quantity<Time>.longValue(timeUnit: TimeUnit): Long =
-        this.toUnit(timeUnit).longValue()
+        this.to(timeUnit).longValue()
 
 fun Quantity<Time>.longValue(temporalUnit: TemporalUnit): Long =
-        this.toUnit(temporalUnit).longValue()
+        this.to(temporalUnit).longValue()
 
 fun Quantity<Time>.floatValue(timeUnit: TimeUnit): Float =
-        this.toUnit(timeUnit).floatValue()
+        this.to(timeUnit).floatValue()
 
 fun Quantity<Time>.floatValue(temporalUnit: TemporalUnit): Float =
-        this.toUnit(temporalUnit).floatValue()
+        this.to(temporalUnit).floatValue()
 
 fun Quantity<Time>.doubleValue(timeUnit: TimeUnit): Double =
-        this.toUnit(timeUnit).doubleValue()
+        this.to(timeUnit).doubleValue()
 
 fun Quantity<Time>.doubleValue(temporalUnit: TemporalUnit): Double =
-        this.toUnit(temporalUnit).doubleValue()
+        this.to(temporalUnit).doubleValue()
 
 fun Duration.toDecimalSeconds(): BigDecimal =
         this.seconds.toBigDecimal().add(this.nano.toBigDecimal().scaleByPowerOfTen(-9))
@@ -116,17 +132,20 @@ fun Quantity<Time>.toDuration(): Duration {
     return Duration.ofSeconds(secondsTruncated, nanoAdjustment)
 }
 
+fun <Q: Quantity<Q>> Number.toQuantity(unit: Unit<Q>): ComparableQuantity<Q> =
+    Quantities.getQuantity(this, unit)
+
 fun Number.toQuantity(timeUnit: TimeUnit): ComparableQuantity<Time> =
-        Quantities.getQuantity(this, timeUnit.toUnit())
+    toQuantity(timeUnit.toUnit())
 
 fun Number.toQuantity(temporalUnit: TemporalUnit): ComparableQuantity<Time> =
-        Quantities.getQuantity(this, temporalUnit.toUnit())
+    toQuantity(temporalUnit.toUnit())
 
-fun Quantity<Time>.toUnit(timeUnit: TimeUnit): ComparableQuantity<Time> =
-        this.toUnit(timeUnit.toUnit())
+fun Quantity<Time>.to(timeUnit: TimeUnit): ComparableQuantity<Time> =
+    toUnit(timeUnit.toUnit())
 
-fun Quantity<Time>.toUnit(temporalUnit: TemporalUnit): ComparableQuantity<Time> =
-        this.toUnit(temporalUnit.toUnit())
+fun Quantity<Time>.to(temporalUnit: TemporalUnit): ComparableQuantity<Time> =
+    toUnit(temporalUnit.toUnit())
 
 fun TimeUnit.toUnit(): Unit<Time> =
         when(this) {
@@ -191,12 +210,11 @@ fun Unit<Time>.toTemporalUnit(): TemporalUnit =
         }
 
 /**
- * Attempt parsing a [JSR-363][Quantity] time measurement, expecting
+ * Attempt parsing a [JSR-275/363/385][Quantity] time measurement, expecting
  * either:
- *
- *  * [Time] units (e.g. `"123 ms"`);
- *  * [Dimensionless] units (e.g. `"123 "`); or
- *  * ISO 8601 time period, parsed using
+ *  - [Time] units (e.g. `"123 ms"`);
+ *  - [Dimensionless] units (e.g. `"123 "`); or
+ *  - ISO 8601 time period, parsed using
  * [JSR-310 Duration][java.time.Duration.parse] or
  * [Joda Period][Period.parse].
  *
@@ -221,9 +239,17 @@ fun Unit<Time>.toTemporalUnit(): TemporalUnit =
  * @see java.time.Duration.parse
  * @see org.joda.time.format.ISOPeriodFormat.standard
  */
-fun CharSequence.parseTimeQuantity(offset: Instant? = null): ComparableQuantity<Time> =
+fun CharSequence.parseTimeQuantity(
+    defaultUnit: Unit<Time> = TimeRef.BASE_UNIT,
+    offset: Instant? = null,
+): ComparableQuantity<Time> =
         try {
-            this.parseQuantity().asType(Time::class.java)
+            this.parseQuantity().let {
+                if(it.unit == AbstractUnit.ONE)
+                    it.value.toQuantity(defaultUnit)
+                else
+                    it.asType(Time::class.java)
+            }
         } catch (e: Exception) {
             try {
                 Duration.parse(this).toQuantity()

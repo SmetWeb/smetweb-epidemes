@@ -106,7 +106,7 @@ allprojects {
 		// see https://kotlinlang.org/docs/reference/using-gradle.html#compiler-options
 		kotlinOptions {
 			suppressWarnings = true
-			jvmTarget = "1.8"
+			jvmTarget = "11"
 			freeCompilerArgs = listOf(
 					"-Xjsr305=strict" // apply Java @NonNullApi/@Nullable annotations in Kotlin
 			)

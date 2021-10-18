@@ -15,49 +15,49 @@ import java.util.*
  * [cron expressions](https://www.baeldung.com/cron-expressions))
  */
 @Suppress("REDUNDANT_LABEL_WARNING", "UNUSED")
-interface ManagedRxTaskScheduler: ManagedClockService, RxClockService, TaskScheduler {
+interface ManagedRxTaskScheduler: ManagedRxClockService, TaskScheduler {
 
-	override fun getClock(): Clock = clock()
+	override fun getClock(): Clock = now
 
 	fun Trigger.nextExecutionTime(): Date? =
 			Trigger@this.nextExecutionTime(ManagedTriggerContext(SchedulerService@ date()))
 
 	override fun schedule(task: Runnable, startTime: Date): RxScheduledFuture<Unit> =
 		RxScheduledFuture(
-				schedulerService = RxSchedulerService@this,
-				command = task::run,
-				startTime = startTime) // no repeat, task should run once only
+			schedulerService = RxSchedulerService@this,
+			command = task::run,
+			startTime = startTime) // no repeat, task should run once only
 
 	override fun scheduleAtFixedRate(task: Runnable, startTime: Date, periodMillis: Long): RxScheduledFuture<Unit> =
 		RxScheduledFuture(
-				schedulerService = RxSchedulerService@this,
-				command = task::run,
-				startTime = startTime,
-				repeater = { now -> Date(now.time + periodMillis) })
+			schedulerService = RxSchedulerService@this,
+			command = task::run,
+			startTime = startTime,
+			repeater = { now -> Date(now.time + periodMillis) })
 
 	override fun schedule(task: Runnable, trigger: Trigger): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@this,
-					command = task::run,
-					startTime = trigger.nextExecutionTime() ?: error("Trigger ended?"),
-					repeater = { trigger.nextExecutionTime() })
+		RxScheduledFuture(
+			schedulerService = RxSchedulerService@this,
+			command = task::run,
+			startTime = trigger.nextExecutionTime() ?: error("Trigger ended?"),
+			repeater = { trigger.nextExecutionTime() })
 
 	override fun scheduleAtFixedRate(task: Runnable, periodMillis: Long): RxScheduledFuture<*> =
-			scheduleAtFixedRate(task, date(), periodMillis)
+		scheduleAtFixedRate(task, date(), periodMillis)
 
 	// start time = end time, sim events are 'instantaneous'
 	override fun scheduleWithFixedDelay(task: Runnable, startTime: Date, delayMillis: Long): RxScheduledFuture<*> =
-			scheduleAtFixedRate(task, startTime, delayMillis)
+		scheduleAtFixedRate(task, startTime, delayMillis)
 
 	// start time = end time, sim events are 'instantaneous'
 	override fun scheduleWithFixedDelay(task: Runnable, delayMillis: Long): RxScheduledFuture<*> =
-			scheduleAtFixedRate(task, delayMillis)
+		scheduleAtFixedRate(task, delayMillis)
 
 	/** [ManagedTriggerContext] is a simple [TriggerContext] wrapping a single [Date] */
 	data class ManagedTriggerContext(
-			val lastCompletionTime: Date? = null,
-			val lastScheduledExecutionTime: Date? = lastCompletionTime,
-			val lastActualExecutionTime: Date? = lastCompletionTime
+		val lastCompletionTime: Date? = null,
+		val lastScheduledExecutionTime: Date? = lastCompletionTime,
+		val lastActualExecutionTime: Date? = lastCompletionTime
 	): TriggerContext {
 		override fun lastCompletionTime(): Date? = this.lastCompletionTime
 		override fun lastScheduledExecutionTime(): Date? = this.lastScheduledExecutionTime

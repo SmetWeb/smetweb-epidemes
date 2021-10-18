@@ -12,54 +12,78 @@ import javax.enterprise.concurrent.*
 @Suppress("REDUNDANT_LABEL_WARNING", "UNUSED")
 interface ManagedRxExecutorService: ManagedRxClockService, ManagedScheduledExecutorService {
 
-	fun Trigger.startDate(): Date =
-			Trigger@this.getNextRunTime(null, SchedulerService@date())
+	fun Trigger.initialDate(): Date =
+		Trigger@this.getNextRunTime(null, SchedulerService@date())
 
 	fun Trigger.toDateSupplier(): (Date) -> Date? =
-			{ now: Date ->
-				val lastExecution = ManagedLastExecution(time = now)
-				if(Trigger@this.skipRun(lastExecution, now)) {
-					throw SkippedException()
-				}
-				Trigger@this.getNextRunTime(lastExecution, now)
+		{ now: Date ->
+			val lastExecution = ManagedLastExecution(time = now)
+			if(Trigger@this.skipRun(lastExecution, now)) {
+				throw SkippedException()
 			}
+			Trigger@this.getNextRunTime(lastExecution, now)
+		}
 
-	override fun schedule(command: Runnable, trigger: Trigger): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@ this,
-					command = command::run,
-					startTime = trigger.startDate(),
-					repeater = trigger.toDateSupplier())
+	override fun schedule(
+		command: Runnable,
+		trigger: Trigger
+	): RxScheduledFuture<Unit> =
+		RxScheduledFuture(
+			schedulerService = RxSchedulerService@ this,
+			command = command::run,
+			startTime = trigger.initialDate(),
+			repeater = trigger.toDateSupplier())
 
-	override fun <V : Any?> schedule(callable: Callable<V>, trigger: Trigger): RxScheduledFuture<V> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@ this,
-					command = callable::call,
-					startTime = trigger.startDate(),
-					repeater = trigger.toDateSupplier())
+	override fun <V : Any?> schedule(
+		callable: Callable<V>,
+		trigger: Trigger
+	): RxScheduledFuture<V> =
+		RxScheduledFuture(
+			schedulerService = RxSchedulerService@ this,
+			command = callable::call,
+			startTime = trigger.initialDate(),
+			repeater = trigger.toDateSupplier())
 
-	override fun schedule(command: Runnable, delay: Long, unit: TimeUnit): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@ this,
-					command = command::run,
-					startTime = dateAfter(delay, unit))
+	override fun schedule(
+		command: Runnable,
+		delay: Long,
+		unit: TimeUnit
+	): RxScheduledFuture<Unit> =
+		RxScheduledFuture(
+			schedulerService = RxSchedulerService@ this,
+			command = command::run,
+			startTime = dateAfter(delay, unit))
 
-	override fun <V : Any?> schedule(callable: Callable<V>, delay: Long, unit: TimeUnit): RxScheduledFuture<V> =
-			RxScheduledFuture(
-					schedulerService = RxSchedulerService@ this,
-					command = callable::call,
-					startTime = dateAfter(delay, unit))
+	override fun <V : Any?> schedule(
+		callable: Callable<V>,
+		delay: Long,
+		unit: TimeUnit
+	): RxScheduledFuture<V> =
+		RxScheduledFuture(
+			schedulerService = RxSchedulerService@ this,
+			command = callable::call,
+			startTime = dateAfter(delay, unit))
 
-	override fun scheduleAtFixedRate(command: Runnable, initialDelay: Long, period: Long, unit: TimeUnit): RxScheduledFuture<Unit> =
-			RxScheduledFuture(
-					schedulerService = SchedulerService@ this,
-					command = command::run,
-					startTime = dateAfter(initialDelay, unit),
-					repeater = { dateAfter(period, unit) })
+	override fun scheduleAtFixedRate(
+		command: Runnable,
+		initialDelay: Long,
+		period: Long,
+		unit: TimeUnit
+	): RxScheduledFuture<Unit> =
+		RxScheduledFuture(
+			schedulerService = SchedulerService@ this,
+			command = command::run,
+			startTime = dateAfter(initialDelay, unit),
+			repeater = { dateAfter(period, unit) })
 
 	// start time = end time, sim events are 'instantaneous'
-	override fun scheduleWithFixedDelay(command: Runnable, initialDelay: Long, delay: Long, unit: TimeUnit): RxScheduledFuture<Unit> =
-			scheduleAtFixedRate(command, initialDelay, delay, unit)
+	override fun scheduleWithFixedDelay(
+		command: Runnable,
+		initialDelay: Long,
+		delay: Long,
+		unit: TimeUnit
+	): RxScheduledFuture<Unit> =
+		scheduleAtFixedRate(command, initialDelay, delay, unit)
 
 	override fun <T : Any?> submit(task: Callable<T>): Future<T> {
 		throw UnsupportedOperationException("")
@@ -118,9 +142,9 @@ interface ManagedRxExecutorService: ManagedRxClockService, ManagedScheduledExecu
 	 * with default empty [result] and [identityName]
 	 */
 	data class ManagedLastExecution(
-			val time: Date,
-			private val result: Any? = null,
-			private val identityName: String? = null
+		val time: Date,
+		private val result: Any? = null,
+		private val identityName: String? = null
 	): LastExecution {
 		override fun getScheduledStart(): Date = this.time
 		override fun getRunStart(): Date = this.time

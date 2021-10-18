@@ -1,6 +1,6 @@
 package io.smetweb.fact
 
-import io.smetweb.ref.NameRef
+import io.smetweb.refer.NameRef
 
 /**
  * [ResultKind] identifies the type of production fact is brought about

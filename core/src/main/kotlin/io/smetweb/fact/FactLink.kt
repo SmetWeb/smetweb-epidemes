@@ -1,7 +1,7 @@
 package io.smetweb.fact
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import io.smetweb.ref.IdRef
+import io.smetweb.refer.IdRef
 
 interface FactLink {
 

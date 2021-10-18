@@ -29,8 +29,6 @@ const val REPORT_INTERVAL = 100L
 
 private val DATE_FORMAT = SimpleDateFormat("HH:mm:ss.SSS ZZZ")
 
-private val LOCAL_ZONE = ZoneId.systemDefault()
-
 @SpringBootTest(classes = [SchedulableTarget::class, TestConfig::class])
 class DsolRxTaskSchedulerTest {
 
@@ -56,14 +54,14 @@ class DsolRxTaskSchedulerTest {
 				{ log.debug("t=T") } )
 
 		assertNotNull(tasks)
-		val n = 10
-		val dt = Duration.ofMillis(n * REPORT_INTERVAL)
-		log.debug("Verifying at least {} scheduled calls occur within max {}...", n, dt)
+		val n = 11
+		val dt = Duration.ofSeconds(1)
+		log.debug("Verifying exactly {} scheduled calls occur within max {} (wall-clock time)...", n, dt)
 
 		scheduler.start()
 		// will poll every 100ms, and kill the test on first success, or times out (failure)
 		await.atMost(dt).untilAsserted {
-			verify(tasks, atLeast(n)).reportCurrentTime()
+			verify(tasks, times(n)).reportCurrentTime()
 		}
 	}
 
@@ -71,7 +69,7 @@ class DsolRxTaskSchedulerTest {
 
 @Component
 open class SchedulableTarget(
-		private val clockService: ClockService
+	private val clockService: ClockService
 ) {
 
 	private val log = getLogger()
@@ -80,7 +78,7 @@ open class SchedulableTarget(
 	open fun reportCurrentTime() {
 		val utc: Instant = this.clockService.instant()
 		val localTime: String = DATE_FORMAT.format(this.clockService.date())
-		log.info("Managed time is: {} (UTC/GMT), or local: {} ({})", utc, localTime, LOCAL_ZONE)
+		log.info("Managed time is: {} (UTC/GMT), or local: {} ({})", utc, localTime, this.clockService.zone())
 	}
 }
 
@@ -94,6 +92,7 @@ open class TestConfig: SchedulingConfigurer {
 
 	@Primary
 	@Bean(destroyMethod = "shutdown")
-	open fun taskScheduler(): DsolRxTaskScheduler = DsolRxTaskScheduler(ScenarioConfig("testSim"))
+	open fun taskScheduler(): DsolRxTaskScheduler = DsolRxTaskScheduler(
+		ScenarioConfig(setupName = "dsolTest", durationPeriod = "PT1S"))
 
 }

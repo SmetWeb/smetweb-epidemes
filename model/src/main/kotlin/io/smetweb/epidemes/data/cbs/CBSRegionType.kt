@@ -1,12 +1,16 @@
 package io.smetweb.epidemes.data.cbs
 
 import com.fasterxml.jackson.annotation.JsonValue
+import io.smetweb.epidemes.deme.RegionType
+import io.smetweb.refer.NameRef
 
+@Suppress("UNUSED")
 enum class CBSRegionType(
-        @JsonValue
-        val prefix: String,
-        private val format: String? = null
-) {
+    @JsonValue val prefix: String,
+    private val format: String? = null,
+    override val nameRef: NameRef = NameRef.of(prefix)
+): RegionType {
+
     /** land  */
     COUNTRY("NL"),
 
@@ -94,9 +98,7 @@ enum class CBSRegionType(
     /** Zorgkantoorregio  */
     HEALTH_WELFARE("ZK");
 
-    fun <T> format(vararg args: T): String =
-            this.format?.let { String.format(it, *args) }
-                    ?: this.prefix
+    fun <T> format(vararg args: T): String = this.format?.let { String.format(it, *args) } ?: this.prefix
 
     companion object {
         @JvmStatic

@@ -2,7 +2,7 @@ package io.smetweb.uuid
 
 import com.fasterxml.jackson.annotation.JsonCreator
 import com.fasterxml.jackson.annotation.JsonValue
-import io.smetweb.ref.NameRef
+import io.smetweb.refer.NameRef
 import java.util.*
 
 /**
