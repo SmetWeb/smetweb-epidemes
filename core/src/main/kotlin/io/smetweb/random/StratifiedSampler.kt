@@ -9,7 +9,7 @@ import kotlin.collections.ArrayList
 /**
  * [StratifiedSampler] (see [wikipedia](https://www.wikiwand.com/en/Stratified_sampling)) is
  * a [ProbabilityDistribution] that samples [Table.Tuple]s from a [Table] stratified using a [TablePartitioner]
- * based on strata provided via [of] and the fluent builder APIs of [Root] and [Branch]
+ * based on strata provided via [of] and the fluent builder-APIs of [Root] and [Branch]
  */
 interface StratifiedSampler<PK: Any> : ProbabilityDistribution<Table.Tuple<PK>> {
 

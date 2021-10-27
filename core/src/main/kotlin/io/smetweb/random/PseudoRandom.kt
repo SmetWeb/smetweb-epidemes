@@ -1,35 +1,34 @@
 package io.smetweb.random
 
+import io.smetweb.math.DEFAULT_CONTEXT
 import java.math.BigDecimal
+import java.math.MathContext
 import java.util.SortedMap
 
 /**
- * [PseudoRandom] generates a stream of pseudo-random numbers
+ * [PseudoRandom] generates a stream of pseudo-random numbers, with API like [java.util.Random] and [kotlin.random.Random]
  * <p>
  * TODO: Implement a thread-safe/multi-threaded default, e.g. <a href=
  * "https://gist.github.com/dhadka/f5a3adc36894cc6aebcaf3dc1bbcef9f">ThreadLocal</a>
  * or
  * <a href="https://github.com/jopasserat/tasklocalrandom">TaskLocalRandom</a>
- *
- * @see PseudoRandomJava
- * @see PseudoRandomKotlin
  */
 interface PseudoRandom {
 
 	val seed: Number
-		get() = System.currentTimeMillis() xor System.nanoTime()
+		// get() = System.currentTimeMillis() xor System.nanoTime()
 
 	fun nextBoolean(): Boolean
 
 	/** @see fillBytes */
 	fun nextBytes(bytes: ByteArray): ByteArray =
-			this::nextInt.fillBytes(bytes)
+		this::nextInt.fillBytes(bytes)
 
 	fun nextInt(): Int
 
-	/** @see coerceBelow */
-	fun nextIntBelow(bound: Int): Int =
-			this::nextInt.coerceBelow(bound)
+	/** @return an [Int] with `0 =< x =<` bound */
+	fun nextIntBelow(boundIncl: Int): Int =
+		this::nextInt.coerceBelow(boundIncl)
 
 	fun nextLong(): Long
 
@@ -45,7 +44,7 @@ interface PseudoRandom {
 		return d
 	}
 
-	/** @return next [Double] (i.e. 64-bit precision) decimal value in [0,1] */
+	/** @return next [Double] (i.e. 64-bit precision) decimal value in `[0,1]` */
 	fun nextDouble(): Double
 
 	fun nextDoubleRange(includeZero: Boolean, includeOne: Boolean): Double {
@@ -59,19 +58,18 @@ interface PseudoRandom {
 	}
 
 	fun nextGaussian(): Double =
-			this::nextDouble.nextGaussian()
+		this::nextDouble.nextGaussian()
 
-	/** @return next 64-bit/double precision [BigDecimal] in [0,1] */
-	fun nextDecimal(): BigDecimal =
-			nextDouble().toBigDecimal()
+	/** @return next 64-bit/double precision [BigDecimal] in `[0,1]` */
+	fun nextDecimal(mathContext: MathContext = DEFAULT_CONTEXT): BigDecimal =
+		nextDouble().toBigDecimal(mathContext)
 
 	/**
-	 * @param bound > 0 (exclusive)
-	 * @return 0 <= x < bound
-	 * @see coerceBelow
+	 * @param boundIncl > 0 (inclusive)
+	 * @return next [Long] with `0 =< x <= bound`
 	 */
-	fun nextLongBelow(bound: Long): Long =
-			this::nextLong.coerceBelow(bound)
+	fun nextLongBelow(boundIncl: Long): Long =
+		this::nextLong.coerceBelow(boundIncl)
 
 	/**
 	 * 0 =< min =< max =< (n - 1)

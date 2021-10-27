@@ -173,13 +173,13 @@ class PseudoRandomEcj(
 
     /** Returns a long drawn uniformly from 0 to n-1.  Suffice it to say,
      * n must be &gt; 0, or an IllegalArgumentException is raised.  */
-    override fun nextLongBelow(bound: Long): Long {
-        require(bound > 0) { "n must be positive, got: $bound" }
+    override fun nextLongBelow(boundIncl: Long): Long {
+        require(boundIncl > 0) { "n must be positive, got: $boundIncl" }
         var result: Long
         do {
             val bits = nextLong() ushr 1
-            result = bits % bound
-        } while (bits - result + (bound - 1) < 0)
+            result = bits % boundIncl
+        } while (bits - result + (boundIncl - 1) < 0)
         return result
     }
 
@@ -237,20 +237,20 @@ class PseudoRandomEcj(
 
     /** Returns an integer drawn uniformly from 0 to n-1.  Suffice it to say,
      * n must be &gt; 0, or an IllegalArgumentException is raised.  */
-    override fun nextIntBelow(bound: Int): Int {
-        require(bound > 0) { "n must be positive, got: $bound" }
-        if (bound and -bound == bound) // i.e., n is a power of 2
+    override fun nextIntBelow(boundIncl: Int): Int {
+        require(boundIncl > 0) { "n must be positive, got: $boundIncl" }
+        if (boundIncl and -boundIncl == boundIncl) // i.e., n is a power of 2
         {
             val y: Int = nextInt()
-            return (bound * (y ushr 1).toLong() shr 31).toInt()
+            return (boundIncl * (y ushr 1).toLong() shr 31).toInt()
         }
         var bits: Int
         var result: Int
         do {
             val y: Int = nextInt()
             bits = y ushr 1
-            result = bits % bound
-        } while (bits - result + (bound - 1) < 0)
+            result = bits % boundIncl
+        } while (bits - result + (boundIncl - 1) < 0)
         return result
     }
 

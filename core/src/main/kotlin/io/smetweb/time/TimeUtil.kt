@@ -1,6 +1,7 @@
 package io.smetweb.time
 
 import io.smetweb.math.*
+import org.dmfs.rfc5545.recur.RecurrenceRuleIterator
 import si.uom.NonSI
 import tech.units.indriya.AbstractUnit
 import tech.units.indriya.ComparableQuantity
@@ -16,6 +17,7 @@ import java.time.temporal.UnsupportedTemporalTypeException
 import java.util.concurrent.TimeUnit
 import javax.measure.Quantity
 import javax.measure.Unit
+import javax.measure.format.QuantityFormat
 import javax.measure.quantity.Dimensionless
 import javax.measure.quantity.Time
 
@@ -66,6 +68,48 @@ fun CharSequence.parseZonedDateTime(defaultZone: ZoneId = ZoneId.systemDefault()
                 }
             }
         }
+
+/**
+ * @return a new [Timing] pattern from this [CharSequence], assuming it is formatted as either:
+ *  - an (absolute) [CRON expression][org.quartz.CronExpression], e.g.
+ *    - `"0 0 0 14 * ? *"`, encoding: *midnight of every 14th day of the month*, or
+ *    - `"0 30 9,12,15 * * ?"`, encoding: *every day at 9:30am, 12:30pm and 3:30pm*;
+ *  - an (absolute) iCal/RFC2445/RFC5545 [`RRULE`][RecurrenceRuleIterator] pattern, e.g.:
+ *    ```
+ *    DTSTART;TZID=US-Eastern:19970902T090000
+ *    RRULE:FREQ=DAILY;UNTIL=20130430T083000Z;INTERVAL=1;
+ *    ```
+ *  - a (relative) ISO8601 [`period` or `duration`][Duration] (e.g. `"P2DT3H4M"`); or
+ *  - a (relative) JSR-275/363/385 [scientific][QuantityFormat] (e.g. duration `"27.5 µs"` or (default) time units `"3 "` ).
+ */
+fun CharSequence.parseTiming(
+    max: Number? = null,
+    defaultUnit: javax.measure.Unit<Time> = TimeRef.BASE_UNIT
+): Timing {
+    val maxLong = max?.toLong()
+    val pattern = toString()
+    return try {
+        Timing.CronTiming(pattern, maxLong)
+    } catch (cronErr: Exception) {
+        try {
+            Timing.ICalTiming(pattern, maxLong)
+        } catch (rfcErr: Exception) {
+            try {
+                Timing.IsoTiming(pattern, maxLong)
+            } catch (isoErr: Exception) {
+                try {
+                    Timing.QuantityTiming(pattern, maxLong, defaultUnit)
+                } catch (jsrErr: Exception) {
+                    error("""Problem parsing `$pattern` as either
+        Quartz/cron expr: ${cronErr.message} (${cronErr.javaClass.simpleName})
+      iCal/RFC-2445/5545: ${rfcErr.message} (${rfcErr.javaClass.simpleName}),
+       Duration/ISO-8601: ${isoErr.message} (${isoErr.javaClass.simpleName}) or
+         JSR-275/363/385: ${jsrErr.message} (${jsrErr.javaClass.simpleName})""")
+                }
+            }
+        }
+    }
+}
 
 @Throws(ArithmeticException::class)
 fun Quantity<Time>.value(unit: TimeUnit): Number =

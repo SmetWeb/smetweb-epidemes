@@ -1,7 +1,7 @@
 package io.smetweb.random
 
-import cern.jet.random.engine.MersenneTwister64
 import cern.jet.random.engine.RandomEngine
+import io.smetweb.sim.dsol.toPseudoRandom
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Test
 import java.util.function.Function
@@ -22,12 +22,12 @@ class PseudoRandomTest {
 		val seed = 4357L
 		val n = 1_000_000
 		mapOf(
-				"JDK" to Function<Long, PseudoRandom> { PseudoRandomJava(it) },
+				"JDK" to Function<Long, PseudoRandom> { java.util.Random(it).toPseudoRandom() },
 				"ECJ MT" to Function { PseudoRandomEcj(it) },
-				"Commons MT" to Function { PseudoRandomCommons(it) },
-				"Colt MT" to Function { PseudoRandomColt(it) },
-				"DSOL MT" to Function { PseudoRandomDsol(it) },
-				"Kotlin" to Function { PseudoRandomKotlin(it) })
+				"Commons MT" to Function { org.apache.commons.math3.random.MersenneTwister(it).toPseudoRandom() },
+				"Colt MT" to Function { cern.jet.random.engine.MersenneTwister64(it.toInt()).toPseudoRandom() },
+				"DSOL MT" to Function { nl.tudelft.simulation.jstats.streams.MersenneTwister(it).toPseudoRandom() },
+				"Kotlin" to Function { kotlin.random.Random(it).toPseudoRandom() })
 				.forEach { (name, init) ->
 					val rng1: PseudoRandom = init.apply(seed)
 					val rng2: PseudoRandom = init.apply(seed)
@@ -38,25 +38,11 @@ class PseudoRandomTest {
 				}
 	}
 
-
-	class PseudoRandomColt(
-		override val seed: Long = System.currentTimeMillis() xor System.nanoTime(),
-		private val rng: RandomEngine = MersenneTwister64(seed.toInt())
-	): PseudoRandom {
-
-		override fun nextBoolean(): Boolean =
-			this.rng.raw() < 0.5
-
-		override fun nextDouble(): Double =
-			this.rng.nextDouble()
-
-		override fun nextFloat(): Float =
-			this.rng.nextFloat()
-
-		override fun nextInt(): Int =
-			this.rng.nextInt()
-
-		override fun nextLong(): Long =
-			this.rng.nextLong()
+	fun RandomEngine.toPseudoRandom() = object: PseudoRandom {
+		override fun nextBoolean(): Boolean = this@toPseudoRandom.raw() < 0.5
+		override fun nextDouble(): Double = this@toPseudoRandom.nextDouble()
+		override fun nextFloat(): Float = this@toPseudoRandom.nextFloat()
+		override fun nextInt(): Int = this@toPseudoRandom.nextInt()
+		override fun nextLong(): Long = this@toPseudoRandom.nextLong()
 	}
 }

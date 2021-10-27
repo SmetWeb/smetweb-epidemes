@@ -25,8 +25,9 @@ interface ManagedClockService: ClockService {
 
 	fun onTimeChanged(timeHandler: (TimeRef) -> Unit, errorHandler: (Throwable) -> Unit = Throwable::printStackTrace)
 
-
-
+	/**
+	 * [ClockStatus] describes the current state of the [ManagedClock]
+	 */
 	enum class ClockStatus {
 		INITIALIZING,
 		STARTED,
@@ -34,7 +35,8 @@ interface ManagedClockService: ClockService {
 	}
 
 	/**
-	 * A [ManagedClock] overrides the [Clock] API to enable re-routing of time calculations onto a managed [TimeRef] value
+	 * A [ManagedClock] overrides Java's [Clock] API and re-routes time calculations onto a managed [timeRefSupplier],
+	 * using [timeRefConverter] to obtain [Instant] and [Date] values based on a fixed offset, e.g. [ClockService.epoch]
 	 */
 	class ManagedClock(
 		private val timeRefSupplier: () -> TimeRef,

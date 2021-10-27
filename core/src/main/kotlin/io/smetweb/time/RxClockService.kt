@@ -3,6 +3,7 @@ package io.smetweb.time
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.Disposable
+import io.reactivex.rxjava3.kotlin.toObservable
 import io.reactivex.rxjava3.subjects.PublishSubject
 import java.util.Date
 import java.util.concurrent.TimeUnit
@@ -21,6 +22,10 @@ interface RxClockService: ClockService {
 
 	fun trigger(schedule: Observable<TimeRef>): Observable<TimeRef>
 
+	/** Trigger this [Timing] pattern and emit respective [TimeRef]s (if any) until an error or completion occurs */
+	fun trigger(timing: Timing): Observable<TimeRef> =
+		trigger(timing.iterate(time(), this.epoch).toObservable())
+
 	fun trigger(
 		firstTime: TimeRef,
 		repeater: (TimeRef) -> TimeRef? = { null }
@@ -38,12 +43,25 @@ interface RxClockService: ClockService {
 	}
 
 	override fun trigger(
-		event: (TimeRef) -> Unit,
+		handler: (TimeRef) -> Unit,
 		disposer: (Throwable?) -> Unit,
 		firstTime: TimeRef,
 		repeater: (TimeRef) -> TimeRef?
-	) {
-		trigger(firstTime, repeater).subscribe(event, disposer) { disposer(null) }
+	): ClockService.Cancellable =
+		trigger(firstTime, repeater)
+			.subscribe(handler, disposer) { disposer(null) }
+			.toCancellable()
+
+	fun Disposable.toCancellable(): ClockService.Cancellable {
+		val self = this
+		return object : ClockService.Cancellable {
+
+			override val cancelled: Boolean
+				get() = self.isDisposed
+
+			override fun cancel() =
+				self.dispose()
+		}
 	}
 
 	/** @see [Observable.timer] */

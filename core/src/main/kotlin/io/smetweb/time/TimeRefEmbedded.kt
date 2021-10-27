@@ -42,5 +42,5 @@ data class TimeRefEmbedded(
 			posix = time.toDate(Date.from(epoch)))
 
 	fun toTimeRef(): TimeRef =
-			TimeRef.of(this.exact?.parseQuantity(Time::class.java) ?: error("Attribute not loaded?"))
+			TimeRef.of(this.exact?.parseQuantity()?.asType(Time::class.java) ?: error("Attribute not loaded?"))
 }

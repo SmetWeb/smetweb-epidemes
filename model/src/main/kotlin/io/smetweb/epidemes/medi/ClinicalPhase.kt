@@ -1,4 +1,4 @@
-package io.smetweb.epidemes.disease
+package io.smetweb.epidemes.medi
 
 import io.smetweb.refer.Ref
 

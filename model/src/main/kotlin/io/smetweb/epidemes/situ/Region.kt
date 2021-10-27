@@ -1,4 +1,4 @@
-package io.smetweb.epidemes.deme
+package io.smetweb.epidemes.situ
 
 import io.smetweb.math.LatLong
 import io.smetweb.refer.Named

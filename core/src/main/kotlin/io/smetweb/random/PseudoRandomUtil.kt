@@ -2,6 +2,32 @@ package io.smetweb.random
 
 import kotlin.reflect.KFunction
 
+/** @return a [PseudoRandom] wrapping a [java.util.Random] from the `java.util` package */
+fun java.util.Random.toPseudoRandom() = object: PseudoRandom {
+    override val seed get() = error("can't access seed of ${this@toPseudoRandom}")
+    override fun nextBoolean(): Boolean = this@toPseudoRandom.nextBoolean()
+    override fun nextBytes(bytes: ByteArray): ByteArray = bytes.apply { this@toPseudoRandom.nextBytes(this) }
+    override fun nextInt(): Int = this@toPseudoRandom.nextInt()
+    override fun nextIntBelow(boundIncl: Int): Int = this@toPseudoRandom.nextInt(boundIncl)
+    override fun nextLong(): Long = this@toPseudoRandom.nextLong()
+    override fun nextFloat(): Float = this@toPseudoRandom.nextFloat()
+    override fun nextDouble(): Double = this@toPseudoRandom.nextDouble()
+    override fun nextGaussian(): Double = this@toPseudoRandom.nextGaussian()
+}
+
+/** @return a [PseudoRandom] wrapping a [kotlin.random.Random] from the `kotlin.random` package */
+fun kotlin.random.Random.toPseudoRandom() = object: PseudoRandom {
+    override val seed get() = error("can't access seed of ${this@toPseudoRandom}")
+    override fun nextBoolean(): Boolean = this@toPseudoRandom.nextBoolean()
+    override fun nextBytes(bytes: ByteArray) = this@toPseudoRandom.nextBytes(bytes)
+    override fun nextInt(): Int = this@toPseudoRandom.nextInt()
+    override fun nextIntBelow(boundIncl: Int): Int = this@toPseudoRandom.nextInt(boundIncl)
+    override fun nextLong(): Long = this@toPseudoRandom.nextLong()
+    override fun nextLongBelow(boundIncl: Long): Long = this@toPseudoRandom.nextLong(boundIncl)
+    override fun nextFloat(): Float = this@toPseudoRandom.nextFloat()
+    override fun nextDouble(): Double = this@toPseudoRandom.nextDouble()
+}
+
 fun KFunction<Int>.fillBytes(bytes: ByteArray): ByteArray {
     var i = 0
     val len: Int = bytes.size
@@ -45,7 +71,11 @@ fun KFunction<Long>.coerceBelow(bound: Long): Long {
 private var nextNextGaussian = 0.0
 private var haveNextNextGaussian = false
 
-/** @see java.util.Random.nextGaussian */
+/**
+ * @see java.util.Random.nextGaussian
+ * @see StrictMath.sqrt
+ * @see StrictMath.log
+ */
 @Synchronized
 fun KFunction<Double>.nextGaussian(): Double {
     // See Knuth, ACP, Section 3.4.1 Algorithm C.

@@ -94,18 +94,42 @@ interface ClockService {
 	fun durationUntil(date: Date): ComparableQuantity<Time> =
 		durationUntil(timeOf(date))
 
-	/** @return */
+	/** @return [Cancellable] */
 	fun trigger(
-		event: (TimeRef) -> Unit,
+		handler: (TimeRef) -> Unit,
 		disposer: (Throwable?) -> Unit = { /* empty */ },
 		firstTime: TimeRef,
-		repeater: (TimeRef) -> TimeRef? = { null })
+		repeater: (TimeRef) -> TimeRef? = { null }
+	): Cancellable
 
-	/** call given [event] at [firstTime], and possibly recur as per [repeater]'s schedule (as of Java 1.8) */
-	fun trigger(event: Consumer<TimeRef>, firstTime: TimeRef, repeater: UnaryOperator<TimeRef?>? = null) =
-		trigger(event = event::accept, firstTime = firstTime, repeater = repeater?.let { it::apply } ?: { null })
+	/** call given [handler] at [firstTime], and possibly recur as per [repeater]'s schedule (as of Java 1.8) */
+	fun trigger(handler: Consumer<TimeRef>, firstTime: TimeRef, repeater: UnaryOperator<TimeRef?>? = null) =
+		trigger(handler = handler::accept, firstTime = firstTime, repeater = repeater?.let { it::apply } ?: { null })
 
-	/** provides a new [Timer] scheduling API (as of Java 1.3) */
+	/**
+	 * Trigger given [Timing] pattern and call
+	 * - given [handler] at respective [TimeRef]s (if any); and/or
+	 * - given [disposer] on failure or completion
+	 */
+	fun trigger(
+		timing: Timing,
+		handler: (TimeRef, Timing) -> Unit,
+		disposer: (Throwable?) -> Unit = { /* empty */ }
+	): Cancellable =
+		timing.iterate(time(), this.epoch).iterator()
+			.let { iter ->
+				if (iter.hasNext())
+					trigger(handler = { handler(it, timing) }, disposer = disposer, firstTime = iter.next()) {
+						if (iter.hasNext())
+							iter.next()
+						else
+							null
+					}
+				else
+					CANCELLED
+			}
+
+	/** provides a [ClockTimer], overriding the standard [Timer] scheduling API (as of Java 1.3) */
 	fun timer(): Timer = ClockTimer(this)
 
 	/** [ClockTimer] provides the [Timer] scheduling API (as of Java 1.3) triggered by a [ClockService] */
@@ -142,5 +166,22 @@ interface ClockService {
 		}
 
 		override fun purge(): Int = -1
+	}
+
+	interface Cancellable {
+		val cancelled: Boolean
+			get() = false
+
+		fun cancel() {
+			if(!cancelled)
+				throw UnsupportedOperationException("Unable to cancel")
+		}
+	}
+
+	companion object {
+		@JvmStatic
+		val CANCELLED = object : ClockService.Cancellable {
+			override val cancelled = true
+		}
 	}
 }

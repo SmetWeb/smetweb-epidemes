@@ -3,18 +3,21 @@ package io.smetweb.math
 import si.uom.NonSI
 import tech.units.indriya.AbstractUnit
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.format.FormatBehavior
-import tech.units.indriya.format.NumberDelimiterQuantityFormat
+import tech.units.indriya.function.AbstractConverter
 import tech.units.indriya.function.DefaultNumberSystem
+import tech.units.indriya.internal.function.Calculator
+import tech.units.indriya.internal.function.ScaleHelper
 import tech.units.indriya.quantity.NumberQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import java.math.BigDecimal
+import java.math.MathContext
 import java.math.RoundingMode
-import java.text.ParsePosition
-import java.util.Comparator
+import java.util.*
 import javax.measure.Quantity
+import javax.measure.Quantity.Scale
 import javax.measure.Unit
+import javax.measure.UnitConverter
 import javax.measure.format.MeasurementParseException
 import javax.measure.format.UnitFormat
 import javax.measure.quantity.Dimensionless
@@ -51,8 +54,8 @@ val ONE = BigDecimal.ONE.toQuantity(PURE)
 /**
  * TODO test with [kotlin.Number] vs [java.lang.Number] subtypes
  */
-fun <Q: Quantity<Q>> Number.toQuantity(unit: Unit<Q>): ComparableQuantity<Q> =
-        Quantities.getQuantity(this, unit)
+fun <Q: Quantity<Q>> Number.toQuantity(unit: Unit<Q>, scale: Scale = Scale.ABSOLUTE): ComparableQuantity<Q> =
+        Quantities.getQuantity(this, unit, scale)
 
 /**
  * @return a [ComparableQuantity]
@@ -67,44 +70,69 @@ fun <Q : Quantity<Q>> Quantity<Q>.toQuantity(): ComparableQuantity<Q> =
 fun Number.toQuantity(): ComparableQuantity<Dimensionless> =
         this.toQuantity(AbstractUnit.ONE)
 
-//@Deprecated("remove when degree/radian conversions is fixed in JSR-363 uom-se",
+
+val CONVERTERS: MutableMap<Pair<Unit<*>, Unit<*>>, UnitConverter> = HashMap()
+
+//@Deprecated("remove when degree/radian conversions is fixed in JSR-363 uom-se (see [ScaleHelper.convertTo])",
 //        replaceWith = ReplaceWith("Quantity.to"))
+/**
+ * @see Quantity.to
+ * @see ScaleHelper.convertTo
+ */
 @Throws(ArithmeticException::class)
-fun <Q : Quantity<Q>> Quantity<Q>.toUnit(unit: Unit<Q>): ComparableQuantity<Q> =
-        if(!this.unit.isCompatible(unit)) {
-            throw ArithmeticException("Incompatible ${this.unit} vs. $unit")
+fun <Q : Quantity<Q>> Quantity<Q>.toUnit(
+    anotherUnit: Unit<Q>,
+    mathContext: MathContext = DEFAULT_CONTEXT
+): ComparableQuantity<Q> =
+        if(!this.unit.isCompatible(anotherUnit)) {
+            throw ArithmeticException("Incompatible ${this.unit} vs. $anotherUnit")
         }
         // special cases
-        else if(this.unit === Units.RADIAN && unit == NonSI.DEGREE_ANGLE) {
-            this.value.toDegrees().toQuantity(unit)
-        } else if(unit === Units.RADIAN && this.unit == NonSI.DEGREE_ANGLE) {
+        else if(this.unit === Units.RADIAN && anotherUnit == NonSI.DEGREE_ANGLE) {
+            this.value.toDegrees(mathContext).toQuantity(anotherUnit)
+        } else if(anotherUnit === Units.RADIAN && this.unit == NonSI.DEGREE_ANGLE) {
             @Suppress("UNCHECKED_CAST")
-            this.value.toRadians().toQuantity(unit) as ComparableQuantity<Q>
+            this.value.toRadians(mathContext).toQuantity(unit) as ComparableQuantity<Q>
         }
         // default implementation
-        else {
-            this.to(unit) as ComparableQuantity<Q>
-        }
+        else if (anotherUnit != unit) {
+            val converter: UnitConverter = CONVERTERS.computeIfAbsent(Pair(unit, anotherUnit)) { unit.getConverterTo(anotherUnit) }
+            if (scale == Scale.RELATIVE) {
+                val linearFactor = if (converter is AbstractConverter)
+                    converter.linearFactor().get()
+                else
+                    error("Conversion of Quantity %s to Unit %s is not supported for relative scale."
+                        .format(this, anotherUnit))
+                Calculator.of(linearFactor).multiply(value).peek().toQuantity(anotherUnit, Scale.RELATIVE)
+//                value.multiplyBy(linearFactor, mathContext).toQuantity(anotherUnit, Scale.RELATIVE)
+            } else {
+                converter.convert(value).toQuantity(anotherUnit, Scale.ABSOLUTE)
+            }
+        } else {
+            this
+        } as ComparableQuantity<Q>
 
-/** String, etc. */
-fun <Q: Quantity<Q>> CharSequence.parseQuantity(quantity: Class<Q>): ComparableQuantity<Q> =
-    parseQuantity().asType(quantity) as ComparableQuantity<Q>
-
-fun CharSequence.parseQuantity(): ComparableQuantity<*> =
+/** @return a JSR-275/363/385 scientific measure [ComparableQuantity] parsed from this [CharSequence] representation */
+@Throws(MeasurementParseException::class)
+fun CharSequence.parseQuantity(
+    mathContext: MathContext = DEFAULT_CONTEXT,
+    unitFormat: UnitFormat = UNIT_FORMAT
+): ComparableQuantity<*> =
     try {
         NumberQuantity.parse(this) as ComparableQuantity<*>
     } catch (e: MeasurementParseException) {
-        throw IllegalArgumentException("Could not parse '${e.parsedString}': ${e.message}", e)
+        try {
+            // try after additional whitespace trimming
+            val split: List<String> = this.trim().toString().split(WHITESPACE_REGEX)
+            val decimal = split[0].parseDecimal(mathContext = mathContext)
+            if (split.size < 2)
+                decimal.toQuantity(unit = PURE)
+            else
+                decimal.toQuantity(unit = unitFormat.parse(split[1].trim()) as Unit<*>)
+        } catch (e2: Throwable) {
+            throw e
+        }
     }
-
-@Suppress("UNCHECKED_CAST")
-fun <Q: Quantity<Q>, R: Quantity<R>> CharSequence.parseQuantity(unitFormat: UnitFormat = UNIT_FORMAT): ComparableQuantity<R> {
-    val split: List<String> = this.toString().trim().split(WHITESPACE_REGEX)
-    return if (split.size < 2)
-        split[0].parseDecimal().toQuantity(PURE) as ComparableQuantity<R>
-    else
-        split[0].parseDecimal().toQuantity(unitFormat.parse(split[1]) as Unit<R>)
-}
 
 @Deprecated("remove when exception is clarified in uom-se",
         replaceWith = ReplaceWith("ParserException.getMessage"))

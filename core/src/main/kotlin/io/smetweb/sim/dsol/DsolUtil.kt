@@ -3,18 +3,32 @@ package io.smetweb.sim.dsol
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import io.smetweb.random.PseudoRandom
+import io.smetweb.random.toPseudoRandom
 import nl.tudelft.simulation.dsol.experiment.*
 import nl.tudelft.simulation.dsol.experiment.ReplicationInterface.*
 import nl.tudelft.simulation.dsol.model.inputparameters.InputParameterMap
 import nl.tudelft.simulation.dsol.simulators.DESSSimulatorInterface.*
 import nl.tudelft.simulation.dsol.simulators.DEVSSimulatorInterface
 import nl.tudelft.simulation.dsol.statistics.StatisticsInterface
+import nl.tudelft.simulation.jstats.streams.RandomNumberGenerator
 import org.djutils.event.EventInterface
 import org.djutils.event.EventTypeInterface
 import org.djutils.event.TimedEvent
 import tech.units.indriya.ComparableQuantity
 import java.math.BigDecimal
 import javax.measure.quantity.Time
+
+/** @return a [PseudoRandom] wrapping a [RandomNumberGenerator] from the `DSOL` library */
+fun RandomNumberGenerator.toPseudoRandom() = object: PseudoRandom {
+	override val seed = this@toPseudoRandom.seed
+	override fun nextBoolean(): Boolean = this@toPseudoRandom.nextBoolean()
+	override fun nextInt(): Int = this@toPseudoRandom.nextInt()
+	override fun nextIntBelow(boundIncl: Int): Int = this@toPseudoRandom.nextInt(0, boundIncl - 1)
+	override fun nextLong(): Long = this@toPseudoRandom.nextLong()
+	override fun nextFloat(): Float = this@toPseudoRandom.nextFloat()
+	override fun nextDouble(): Double = this@toPseudoRandom.nextDouble()
+}
 
 @Suppress("REDUNDANT_LABEL_WARNING")
 fun DEVSSimulatorInterface<*, *, *>.emit(vararg eventTypes: EventTypeInterface): Observable<EventInterface> =

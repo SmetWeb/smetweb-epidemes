@@ -1,4 +1,4 @@
-package io.smetweb.epidemes.disease.infection
+package io.smetweb.epidemes.medi.infect
 
 interface EpiTransition {
 

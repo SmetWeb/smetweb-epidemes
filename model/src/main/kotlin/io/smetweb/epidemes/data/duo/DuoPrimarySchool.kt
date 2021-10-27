@@ -15,6 +15,7 @@ import java.util.EnumMap
 import java.util.TreeMap
 import java.util.stream.Collectors
 import java.util.stream.Stream
+import kotlin.streams.toList
 
 @Suppress("UNUSED")
 object DuoPrimarySchool {
@@ -58,7 +59,7 @@ object DuoPrimarySchool {
                         .collect(Collectors.toMap( // key2: cat
                             { it.key },
                             { rng.categorical(
-                                it.value.stream().map { wv -> Pair(wv.second.key, wv.second.value.asBigDecimal()) })
+                                it.value.stream().map { wv -> Pair(wv.second.key, wv.second.value.asBigDecimal()) }.toList())
                             },
                             { _, v2 -> v2 },
                             { HashMap() }))

@@ -50,7 +50,7 @@ interface TimeRef: Ref<ComparableQuantity<Time>> // TODO allow [Quantity] types 
 	): TimeRef, Ref.Ordinal<ComparableQuantity<Time>, ComparableQuantity<Time>> {
 
 		@JsonCreator
-		constructor(json: String): this(json.parseQuantity(Time::class.java))
+		constructor(json: String): this(json.parseQuantity().asType(Time::class.java))
 
 		@JsonValue
 		override fun toString(): String = value.toString()

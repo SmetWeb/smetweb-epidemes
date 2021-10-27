@@ -13,38 +13,38 @@ import javax.measure.quantity.Time
 @ConfigurationProperties(prefix = "scenario")
 data class ScenarioConfig(
 
-        @DefaultValue("default setup")
-        val setupName: String,
+	@DefaultValue("default setup")
+	val setupName: String,
 
-        @DefaultValue("P6M")
-        private val durationPeriod: String = "P6M",
+	@DefaultValue("P6M")
+	private val durationPeriod: String = "P6M",
 
-        @DefaultValue("2000-01-01")
-        private val offsetDate: String = "2000-01-01",
+	@DefaultValue("2000-01-01")
+	private val offsetDate: String = "2000-01-01",
 
-        val randomSeed: Long = System.currentTimeMillis(),
+	val randomSeed: Long = System.currentTimeMillis(),
 
-        @DefaultValue("default analyst")
-        val analyst: String? = null,
+	@DefaultValue("default analyst")
+	val analyst: String? = null,
 
-        @DefaultValue("default replication")
-        val description: String? = null
+	@DefaultValue("default replication")
+	val description: String? = null
 
 ) {
 
-        val defaultZone: ZoneId =
-                ZoneId.systemDefault()
+	val defaultZone: ZoneId =
+		ZoneId.systemDefault()
 
-        val start: ZonedDateTime =
-                this.offsetDate.parseZonedDateTime(defaultZone)
+	val start: ZonedDateTime =
+		this.offsetDate.parseZonedDateTime(defaultZone)
 
-        val epoch: Instant =
-                this.start.toInstant()
+	val epoch: Instant =
+		this.start.toInstant()
 
-        val duration: Quantity<Time> =
-                this.durationPeriod.parseTimeQuantity(offset = this.epoch)
+	val duration: Quantity<Time> =
+		this.durationPeriod.parseTimeQuantity(offset = this.epoch)
 
-        override fun toString(): String =
-                "${ScenarioConfig::class.java.simpleName}[name: $setupName, seed: $randomSeed, " +
-                        "start + length: $offsetDate + $durationPeriod (i.e. $start + $duration)]"
+	override fun toString(): String =
+		"${ScenarioConfig::class.java.simpleName}[name: $setupName, seed: $randomSeed, " +
+				"start + length: $offsetDate + $durationPeriod (i.e. $start + $duration)]"
 }

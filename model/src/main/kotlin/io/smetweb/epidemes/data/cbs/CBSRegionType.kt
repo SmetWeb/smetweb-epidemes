@@ -1,7 +1,7 @@
 package io.smetweb.epidemes.data.cbs
 
 import com.fasterxml.jackson.annotation.JsonValue
-import io.smetweb.epidemes.deme.RegionType
+import io.smetweb.epidemes.situ.RegionType
 import io.smetweb.refer.NameRef
 
 @Suppress("UNUSED")

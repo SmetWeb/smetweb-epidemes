@@ -1,6 +1,6 @@
-package io.smetweb.epidemes.disease.infection
+package io.smetweb.epidemes.medi.infect
 
-import io.smetweb.epidemes.disease.ClinicalPhase
+import io.smetweb.epidemes.medi.ClinicalPhase
 
 /**
  * [EpiClinicalPhase] represents [ClinicalPhase] relevant in epidemiological contexts
