@@ -13,7 +13,7 @@ scenario:
 # DEMOS / HOUSEHOLD / PERSON BROKER / DOMESTIC MODULE
 #
 demography:
-  module: nl.rivm.cib.epidemes.demo.impl.PersonBrokerSimple
+#  module: nl.rivm.cib.epidemes.demo.impl.PersonBrokerSimple
   population-size: 100000
   population-size-ref: 17000000
   # regional level of congruence/fidelity: MUNICIPAL, COROP, PROVINCE, TERRITORY

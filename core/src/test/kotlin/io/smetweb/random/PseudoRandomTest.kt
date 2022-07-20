@@ -39,6 +39,7 @@ class PseudoRandomTest {
 	}
 
 	fun RandomEngine.toPseudoRandom() = object: PseudoRandom {
+		override val seed: Number get() = error("Can't access seed in ${this@toPseudoRandom}")
 		override fun nextBoolean(): Boolean = this@toPseudoRandom.raw() < 0.5
 		override fun nextDouble(): Double = this@toPseudoRandom.nextDouble()
 		override fun nextFloat(): Float = this@toPseudoRandom.nextFloat()

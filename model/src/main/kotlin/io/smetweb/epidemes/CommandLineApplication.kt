@@ -3,6 +3,7 @@ package io.smetweb.epidemes
 import io.smetweb.epidemes.deme.DemeConfig
 import io.smetweb.log.getLogger
 import io.smetweb.sim.ScenarioConfig
+import io.smetweb.xml.XmlConfig
 import org.springframework.boot.Banner
 import org.springframework.boot.CommandLineRunner
 import org.springframework.boot.autoconfigure.SpringBootApplication
@@ -18,35 +19,38 @@ import org.springframework.transaction.annotation.EnableTransactionManagement
 @EntityScan(basePackages = ["io.smetweb.uuid", "io.smetweb.time", "io.smetweb.sim.event"])
 @EnableScheduling
 @EnableTransactionManagement(mode = AdviceMode.ASPECTJ)
-@EnableConfigurationProperties(ScenarioConfig::class, DemeConfig::class)
+@EnableConfigurationProperties(ScenarioConfig::class, DemeConfig::class, XmlConfig::class)
 class CommandLineApplication(
-        private val config: ScenarioConfig
+	private val scenarioConfig: ScenarioConfig,
+	private val demeConfig: DemeConfig,
+	private val xmlConfig: XmlConfig,
 ) {
 
-    private val log = getLogger()
+	private val log = getLogger()
 
-    /**
-     * 1. load CLI args
-     * 2. load YAML config
-     * 3. start/reset logger
-     * 4. load module config(s)
-     * 5. load sim config
-     * 6. setup inputs
-     * 7. setup outputs
-     * 8. start sim
-     */
-    @Bean
-    fun runner(): CommandLineRunner = CommandLineRunner { args ->
-        log.info("Started. args: {}, config: {}", args, this.config)
-    }
+	/**
+	 * 1. load CLI args
+	 * 2. load YAML config
+	 * 3. start/reset logger
+	 * 4. load module config(s)
+	 * 5. load sim config
+	 * 6. setup inputs
+	 * 7. setup outputs
+	 * 8. start sim
+	 */
+	@Bean
+	fun cliRunner(): CommandLineRunner = CommandLineRunner { args ->
+		log.info("Started. args: {}, \nscenario: {}\ndeme: {}\nxml: {}", args, scenarioConfig, demeConfig, xmlConfig)
+	}
 
-    companion object {
-        fun main(args: Array<String>) {
-            runApplication<CommandLineApplication>(*args) {
-                setBannerMode(Banner.Mode.OFF)
-            }
-        }
-    }
+	companion object {
+		@JvmStatic
+		fun main(args: Array<String>) {
+			runApplication<CommandLineApplication>(*args) {
+				setBannerMode(Banner.Mode.OFF)
+			}
+		}
+	}
 
 //            val argMap: MutableMap<String, String> = ConfigUtil.cliArgMap(args)
 //            val confBase = argMap.computeIfAbsent(DemoConfig.CONFIG_BASE_KEY

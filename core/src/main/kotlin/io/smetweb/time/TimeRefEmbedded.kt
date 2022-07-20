@@ -5,7 +5,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.util.Date
 import javax.measure.quantity.Time
-import javax.persistence.*
+import jakarta.persistence.*
 
 /**
  * [TimeRefEmbedded] is a data access object for persisting [TimeRef] objects, with respective

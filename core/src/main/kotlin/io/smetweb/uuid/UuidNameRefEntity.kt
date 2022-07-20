@@ -1,6 +1,6 @@
 package io.smetweb.uuid
 
-import javax.persistence.*
+import jakarta.persistence.*
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.smetweb.fact.ActorKind
 import java.util.*

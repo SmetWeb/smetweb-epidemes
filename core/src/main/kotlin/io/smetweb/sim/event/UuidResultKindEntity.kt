@@ -4,7 +4,7 @@ import io.smetweb.fact.ResultKind
 import io.smetweb.uuid.UuidNameRef
 import io.smetweb.uuid.UuidNameRefEntity
 import java.util.*
-import javax.persistence.*
+import jakarta.persistence.*
 
 @Entity
 @Cacheable

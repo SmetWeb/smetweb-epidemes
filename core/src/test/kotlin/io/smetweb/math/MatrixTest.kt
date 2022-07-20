@@ -26,9 +26,10 @@ class MatrixTest {
         assertEquals(sum.toDecimal(), m.sum())
 
         m.add(BigDecimal.ONE)
+        println(m::class.java.name + ":\n" + m)
         m.forEach { x, v ->
             if(x[0] > 1 && x[1] > 2) {
-                assertEquals(BigDecimal.ONE, v, "$v should be 1")
+                assertEquals(BigDecimal.ONE, (v as Number).toDecimal(), "$v should be 1")
             }
         }
         val total = sum + m.rowCount * m.columnCount

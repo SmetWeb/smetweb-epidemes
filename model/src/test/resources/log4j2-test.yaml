@@ -1,0 +1,32 @@
+Configuration:
+  status: info
+  Properties:
+    property:
+      - name: "filters"
+        value: "org.junit,org.apache.maven,sun.reflect,jdk.internal.reflect,java.lang.reflect"
+
+  appenders:
+    Console:
+      name: STDOUT
+      target: SYSTEM_OUT
+      PatternLayout:
+        Pattern: "%d{HH:mm:ss.SSS} %highlight{%5level} %style{%5pid}{magenta} [%11.11t] %style{%-20.20replace{%logger{1.}}{\\$\\$\\w+}{}}{cyan} - %m [at %style{%C.%M(%F:%L)}{yellow}]%xEx{filters(${filters})}%n"
+#        Pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{%5level} %style{%5pid}{magenta} [%15.15t] %style{%-20.20replace{%logger{1.}}{\\$\\$\\w+}{}}{cyan} - %m [at %style{%C.%M(%F:%L)}{yellow}]%xEx{filters(${filters})}%n"
+
+  Loggers:
+    Root:
+      level: info
+      AppenderRef:
+        ref: STDOUT
+
+    logger:
+      - name: io.smetweb
+        level: trace
+#      - name: io.netty
+#        level: info
+      - name: org.springframework
+        level: info
+      - name: com.zaxxer.hikari
+        level: warn
+      - name: reactor.util
+        level: warn

@@ -16,7 +16,7 @@ import io.smetweb.uuid.UuidNameRefEntity
 import io.smetweb.uuid.UuidRef
 import java.time.Instant
 import java.util.*
-import javax.persistence.*
+import jakarta.persistence.*
 
 /**
  * [UuidFactEntity] is a representation for persisting and accessing [UuidFact] objects,

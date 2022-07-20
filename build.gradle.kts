@@ -24,7 +24,7 @@ buildscript {
 		classpath(group = "org.springframework.boot", name = "spring-boot-gradle-plugin", version = springBootVersion)
 
 		// required by kapt, see https://kotlinlang.org/docs/reference/kapt.html
-		classpath(group = "org.hibernate", name = "hibernate-jpamodelgen", version = hibernateVersion)
+		classpath(group = "org.hibernate.orm", name = "hibernate-jpamodelgen", version = hibernateVersion)
 
 		// see https://spotbugs.github.io/
 		classpath(group = "gradle.plugin.com.github.spotbugs", name = "spotbugs-gradle-plugin", version = spotBugsVersion)

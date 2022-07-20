@@ -5,7 +5,9 @@ import io.reactivex.rxjava3.kotlin.toFlowable
 import kotlinx.coroutines.flow.*
 import org.ujmp.core.Matrix
 import org.ujmp.core.SparseMatrix
+import org.ujmp.core.bigdecimalmatrix.impl.DefaultSparseBigDecimalMatrix
 import org.ujmp.core.calculation.Calculation.Ret
+import org.ujmp.core.enums.ValueType
 import java.math.BigDecimal
 import java.math.BigInteger
 import java.util.*
@@ -91,7 +93,13 @@ fun <M: Matrix, T: Any?> M.compute(
     all: Boolean = true,
     parallel: Boolean = PARALLEL,
     getter: (LongArray) -> T = { x -> getAsObject(*x) as T },
-    setter: (T, LongArray) -> Unit = ::setAsObject,
+    setter: (T, LongArray) -> Unit =
+        if (valueType == ValueType.BIGDECIMAL && this is DefaultSparseBigDecimalMatrix)
+        // FIXME workaround: DefaultSparseBigDecimalMatrix does not override AbstractMatrix.setAsBigDecimal,
+        //  which stores ValueType.BIGDECIMAL as double
+            { v, x -> setBigDecimal(v as BigDecimal, *x) }
+        else
+            ::setAsObject,
     vararg coords: Long,
     transform: (T, LongArray) -> T,
 ): M {

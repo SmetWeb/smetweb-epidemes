@@ -3,10 +3,10 @@ package io.smetweb.uuid
 import java.nio.ByteBuffer
 import java.nio.LongBuffer
 import java.util.UUID
-import javax.persistence.AttributeConverter
-import javax.persistence.Convert
-import javax.persistence.Converter
-import javax.persistence.Entity
+import jakarta.persistence.AttributeConverter
+import jakarta.persistence.Convert
+import jakarta.persistence.Converter
+import jakarta.persistence.Entity
 
 /**
  * A JPA [AttributeConverter] that converts [UUID] to JSON text.

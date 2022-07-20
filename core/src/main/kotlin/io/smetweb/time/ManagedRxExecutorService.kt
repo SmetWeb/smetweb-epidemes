@@ -3,7 +3,7 @@ package io.smetweb.time
 import io.smetweb.time.RxClockService.RxScheduledFuture
 import java.util.Date
 import java.util.concurrent.*
-import javax.enterprise.concurrent.*
+import jakarta.enterprise.concurrent.*
 
 /**
  * [ManagedRxExecutorService] provides the [ManagedScheduledExecutorService] scheduling API

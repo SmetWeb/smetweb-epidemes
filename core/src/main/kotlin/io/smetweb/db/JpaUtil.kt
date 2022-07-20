@@ -2,11 +2,11 @@ package io.smetweb.db
 
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.core.Single
-import javax.persistence.*
-import javax.persistence.criteria.CriteriaDelete
-import javax.persistence.criteria.CriteriaQuery
-import javax.persistence.criteria.Root
-import javax.persistence.metamodel.SingularAttribute
+import jakarta.persistence.*
+import jakarta.persistence.criteria.CriteriaDelete
+import jakarta.persistence.criteria.CriteriaQuery
+import jakarta.persistence.criteria.Root
+import jakarta.persistence.metamodel.SingularAttribute
 import kotlin.math.max
 
 /**

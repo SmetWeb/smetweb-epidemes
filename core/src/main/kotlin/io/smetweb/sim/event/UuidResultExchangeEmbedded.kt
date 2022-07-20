@@ -6,7 +6,7 @@ import io.smetweb.uuid.UuidNameRef
 import io.smetweb.uuid.UuidNameRefEntity
 import io.smetweb.uuid.UuidRef
 import java.util.UUID
-import javax.persistence.*
+import jakarta.persistence.*
 
 /**
  * [UuidResultExchangeEmbedded] is a data access object for persisting [UuidResultExchange] objects,

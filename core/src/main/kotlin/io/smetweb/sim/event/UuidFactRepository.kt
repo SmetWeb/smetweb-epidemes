@@ -8,8 +8,8 @@ import io.smetweb.uuid.UuidNameRefRepository
 import io.smetweb.uuid.UuidRef
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
-import javax.persistence.EntityManager
-import javax.persistence.PersistenceContext
+import jakarta.persistence.EntityManager
+import jakarta.persistence.PersistenceContext
 
 // TODO merge with Spring's JpaRepository<UuidFactEntity, Int>
 

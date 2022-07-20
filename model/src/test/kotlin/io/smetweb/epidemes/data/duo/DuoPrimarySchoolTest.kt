@@ -33,7 +33,7 @@ class DuoPrimarySchoolTest {
     companion object {
         val log: Logger = getLogger()
 
-        private const val pc4GemFile = "dist/adm_pc4_2016_basis.json"
+        private const val pc4GemFile = "../dist/adm_pc4_2016_basis.json"
         private const val pc6GeoFile = "dist/bag_pc6_2016_01.json"
         private const val fileName = "03.-leerlingen-po-totaaloverzicht-2015-2016.csv"
         const val outFileName = "dist/region-primary-school-students.json"

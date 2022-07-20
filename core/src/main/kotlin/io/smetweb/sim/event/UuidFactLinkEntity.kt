@@ -5,7 +5,7 @@ import io.smetweb.fact.ResultKind
 import io.smetweb.uuid.UuidJpaConverter
 import io.smetweb.uuid.UuidRef
 import java.util.UUID
-import javax.persistence.*
+import jakarta.persistence.*
 
 @Entity
 @Table(name = "FACT_LINKS", uniqueConstraints = [

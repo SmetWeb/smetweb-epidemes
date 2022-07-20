@@ -1,12 +1,11 @@
 package io.smetweb.json
 
-import javax.persistence.AttributeConverter
-import javax.persistence.Convert
-import javax.persistence.Converter
-import javax.persistence.Entity
+import jakarta.persistence.AttributeConverter
+import jakarta.persistence.Convert
+import jakarta.persistence.Converter
+import jakarta.persistence.Entity
 import com.fasterxml.jackson.core.TreeNode
 import com.fasterxml.jackson.databind.node.BaseJsonNode
-import java.io.Serializable
 
 /**
  * [TreeNodeJpaConverter] is a JPA [AttributeConverter]
@@ -21,8 +20,8 @@ import java.io.Serializable
 class TreeNodeJpaConverter : AttributeConverter<BaseJsonNode, String> {
 
 	override fun convertToDatabaseColumn(attribute: BaseJsonNode?) = attribute
-			?.let(OBJECT_MAPPER::writeValueAsString)
+		?.let(OBJECT_MAPPER::writeValueAsString)
 
 	override fun convertToEntityAttribute(dbData: String?) = dbData
-			?.let(OBJECT_MAPPER::readTree) as BaseJsonNode
+		?.let(OBJECT_MAPPER::readTree) as BaseJsonNode
 }

@@ -1,14 +1,11 @@
 package io.smetweb.time
 
-import io.smetweb.log.getLogger
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import tech.units.indriya.unit.Units
 
 class TimingTest {
-
-	private val log = getLogger()
 
 	@Test
 	fun `parsing variants`() {

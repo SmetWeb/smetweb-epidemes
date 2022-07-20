@@ -1,20 +1,31 @@
 //import org.jetbrains.kotlin.backend.wasm.lower.excludeDeclarationsFromCodegen
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 
-val appClass: String = "io.smetweb.web.SmetWebApplication.Companion"
-
 plugins {
 	application
 	kotlin("jvm")
 	kotlin("kapt")
+	kotlin("plugin.spring")
 
-	id("org.jetbrains.kotlin.plugin.spring")
+	// see https://unbroken-dome.github.io/projects/gradle-xjc-plugin/
+	id("org.unbroken-dome.xjc") version "2.0.0"
 	id("com.github.johnrengelman.processes") version "0.5.0"
 //	id("org.springdoc.openapi-gradle-plugin") version "1.3.0"
+
 }
+
+val appClass: String = "io.smetweb.web.SmetWebApplication.Companion"
 
 application {
 	mainClass.set(appClass)
+}
+
+// see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
+tasks.withType<BootJar> {
+	mainClass.set(appClass)
+	manifest {
+		attributes("Start-Class" to appClass)
+	}
 }
 
 // see https://github.com/springdoc/springdoc-openapi-gradle-plugin#customization
@@ -26,15 +37,8 @@ application {
 ////	forkProperties.set("-Dspring.profiles.active=special")
 //}
 
-// see https://docs.spring.io/spring-boot/docs/current/gradle-plugin/reference/html/
-tasks.withType<BootJar> {
-	mainClass.set(appClass)
-	manifest {
-		attributes("Start-Class" to mainClass)
-	}
-}
-
 dependencies {
+//	val springVersion: String by System.getProperties()
 	val h2Version: String by project
 	val springdocVersion: String by project
 //	val ktorVersion: String by project
@@ -58,24 +62,28 @@ dependencies {
 	api(group = "io.projectreactor.kotlin", name = "reactor-kotlin-extensions", version = "1.1.3")
 	api(group = "org.springframework.boot", name = "spring-boot-starter-security")
 	api(group = "org.springframework.boot", name = "spring-boot-starter-data-rest") {
-		exclude(module = "spring-boot-starter-tomcat")
+		exclude(module = "spring-boot-starter-tomcat") // replace tomcat with Vert.x
 	}
-	api("org.springframework:spring-context") {
+	api(group = "org.springframework", name = "spring-context") {
 		exclude(module = "spring-aop")
 	}
 //	api("io.projectreactor.netty:reactor-netty")
 
 	// all this stuff for standard validation, really?
-	kapt("org.springframework.boot:spring-boot-configuration-processor")
-	api(group = "javax.validation", name = "validation-api", version = "2.0.1.Final")
-	api(group = "javax.el", name = "javax.el-api", version = "3.0.0")
-	api(group = "org.glassfish.web", name = "javax.el", version = "2.2.6")
-	api(group = "org.hibernate", name = "hibernate-validator", version = "6.1.5.Final")
+	kapt(group = "org.springframework.boot", name = "spring-boot-configuration-processor")
+	api(group = "org.glassfish", name = "javax.el", version = "3.0.0")
+	api(group = "org.hibernate", name = "hibernate-validator", version = "6.2.0.Final")
 
+	// Vert.x
 	api(group = "io.vertx", name = "vertx-lang-kotlin-coroutines", version = vertxVersion)
 	api(group = "io.vertx", name = "vertx-web", version = vertxVersion)
 	api(group = "io.vertx", name = "vertx-rx-java2", version = vertxVersion)
 //	api(group = "io.ktor", name = "ktor-server-netty", version = ktorVersion)
+
+	// OData V3
+	// for code generated from XSD by XJC (with gradle plugin), but also in hibernate-core (by spring-boot-starter-data-jpa)
+	implementation("jakarta.xml.bind:jakarta.xml.bind-api:4.0.0")
+	implementation("com.fasterxml.woodstox:woodstox-core:6.2.8")
 
 	testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api")
 	testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine")
